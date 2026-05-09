@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSitesDocument, AdminUsersDocument } from "@/lib/gql/generated/graphql";
+import { AdminDevicesList } from "@/components/admin/admin-devices-list";
 
 export function AdminDashboard() {
   const { data: usersData, loading: usersLoading, error: usersError } = useQuery(AdminUsersDocument);
@@ -75,19 +76,7 @@ export function AdminDashboard() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle>Devices</CardTitle>
-          <Button type="button" size="sm" variant="outline" asChild>
-            <Link href="/admin/devices">Manage devices</Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Register physical hardware, rotate API keys, and flash firmware to ESP32/ESP8266 nodes from your browser over USB.
-          </p>
-        </CardContent>
-      </Card>
+      <AdminDevicesList overview />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">

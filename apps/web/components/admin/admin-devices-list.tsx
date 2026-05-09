@@ -1,69 +1,75 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
+import { AlertCircle } from "lucide-react";
 import {
   AdminDevicesDocument,
   DeleteAdminDeviceDocument,
   RotateAdminDeviceApiKeyDocument
 } from "@/lib/gql/generated/graphql";
 
-export function AdminDevicesList() {
+export function AdminDevicesList({ overview = false }: { overview?: boolean }) {
   const { data, loading, error, refetch } = useQuery(AdminDevicesDocument);
   const [rotateKey, { loading: rotating }] = useMutation(RotateAdminDeviceApiKeyDocument);
   const [deleteDevice, { loading: deleting }] = useMutation(DeleteAdminDeviceDocument);
   const [actionError, setActionError] = useState<string | null>(null);
   const [rotatedKey, setRotatedKey] = useState<{ id: string; key: string } | null>(null);
+  const [deviceToDelete, setDeviceToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deviceToRotate, setDeviceToRotate] = useState<{ id: string; name: string } | null>(null);
 
-  const grouped = useMemo(() => {
-    const groups = new Map<string, { siteName: string; devices: typeof data extends infer T ? (T extends { adminDevices: infer D } ? D : never) : never }>();
-    const devices = data?.adminDevices ?? [];
-    for (const d of devices) {
-      const key = d.siteId || "unassigned";
-      const g = groups.get(key);
-      if (g) {
-        g.devices.push(d);
-      } else {
-        groups.set(key, { siteName: d.siteName || "Unassigned", devices: [d] });
-      }
-    }
-    return [...groups.entries()]
-      .map(([siteId, g]) => ({ siteId, ...g }))
-      .sort((a, b) => a.siteName.localeCompare(b.siteName));
-  }, [data]);
+  // We are creating a flat list instead of grouping by site.
+  // We sort devices by site name, then device ID for a consistent order.
+  const devices = [...(data?.adminDevices ?? [])].sort((a, b) => {
+    const siteA = a.siteName || "Unassigned";
+    const siteB = b.siteName || "Unassigned";
+    if (siteA !== siteB) return siteA.localeCompare(siteB);
+    return a.deviceId.localeCompare(b.deviceId);
+  });
 
-  async function onRotate(id: string, label: string) {
+  async function onRotate(id: string) {
     setActionError(null);
     setRotatedKey(null);
-    if (!confirm(`Rotate API key for "${label}"? The previous key stops working immediately.`)) {
-      return;
-    }
     try {
       const r = await rotateKey({ variables: { id } });
       const next = r.data?.rotateAdminDeviceApiKey;
       if (next) {
         setRotatedKey({ id, key: next });
       }
+      setDeviceToRotate(null);
     } catch (err) {
       setActionError(apolloErrorMessage(err));
     }
   }
 
-  async function onDelete(id: string, label: string) {
+  async function onDelete(id: string) {
     setActionError(null);
-    if (!confirm(`Delete device "${label}"? Past measurements stay in the database, but the device can no longer post.`)) {
-      return;
-    }
     try {
       await deleteDevice({ variables: { id } });
       await refetch();
+      setDeviceToDelete(null);
     } catch (err) {
       setActionError(apolloErrorMessage(err));
     }
+  }
+
+  function getWarnings(device: NonNullable<typeof data>["adminDevices"][0]) {
+    const warnings: string[] = [];
+    if (!device.lastSeenAt) {
+      warnings.push("Never seen");
+    } else {
+      const lastSeen = new Date(device.lastSeenAt).getTime();
+      const intervalMs = device.expectedIntervalSeconds * 1000;
+      // API scheduler considers it offline if more than 3x the interval has passed
+      if (Date.now() - lastSeen > intervalMs * 3) {
+        warnings.push("Offline");
+      }
+    }
+    return warnings;
   }
 
   return (
@@ -71,7 +77,11 @@ export function AdminDevicesList() {
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle>Registered devices</CardTitle>
         <Button type="button" size="sm" variant="outline" asChild>
-          <Link href="/admin/devices/new">Add device</Link>
+          {overview ? (
+            <Link href="/admin/devices">Manage devices</Link>
+          ) : (
+            <Link href="/admin/devices/new">Add device</Link>
+          )}
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -91,37 +101,112 @@ export function AdminDevicesList() {
           </div>
         ) : null}
 
-        {grouped.length === 0 && !loading ? (
+        {devices.length === 0 && !loading ? (
           <p className="text-sm text-muted-foreground">No devices yet. Use "Add device" to register one.</p>
         ) : null}
 
-        {grouped.map((group) => (
-          <div key={group.siteId || "unassigned"} className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{group.siteName}</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="py-3 pr-4">Device ID</th>
-                    <th className="py-3 pr-4">Friendly name</th>
-                    <th className="py-3 pr-4">Board</th>
-                    <th className="py-3 pr-4">Interval</th>
-                    <th className="py-3 pr-4">Last seen</th>
-                    <th className="py-3 pr-4 text-right" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {group.devices.map((d) => (
-                    <tr key={d.id} className="border-b border-border last:border-0 align-top">
-                      <td className="py-3 pr-4 font-mono text-xs">{d.deviceId}</td>
-                      <td className="py-3 pr-4">{d.name ?? "—"}</td>
-                      <td className="py-3 pr-4">{d.board ?? "—"}</td>
-                      <td className="py-3 pr-4">{d.expectedIntervalSeconds}s</td>
-                      <td className="py-3 pr-4 text-muted-foreground">
-                        {d.lastSeenAt ? new Date(d.lastSeenAt).toLocaleString() : "Never"}
-                      </td>
-                      <td className="py-3 pr-4 text-right">
-                        <div className="flex flex-wrap justify-end gap-2">
+        {devices.length > 0 && (
+          <div className="flex flex-col text-sm">
+            {/* Desktop Header */}
+            {overview ? (
+              <div className="hidden md:grid md:grid-cols-12 md:gap-4 border-b border-border py-3 text-left font-medium text-muted-foreground">
+                <div className="col-span-3">Device</div>
+                <div className="col-span-3">Site</div>
+                <div className="col-span-2">Last seen</div>
+                <div className="col-span-4">Warnings</div>
+              </div>
+            ) : (
+              <div className="hidden lg:grid lg:grid-cols-12 lg:gap-4 border-b border-border py-3 text-left font-medium text-muted-foreground">
+                <div className="col-span-2">Device ID</div>
+                <div className="col-span-2">Friendly name</div>
+                <div className="col-span-2">Board</div>
+                <div className="col-span-1">Interval</div>
+                <div className="col-span-2">Last seen</div>
+                <div className="col-span-3 text-right">Actions</div>
+              </div>
+            )}
+            
+            {/* Device Rows */}
+            <div className="divide-y divide-border">
+              {devices.map((d) => {
+                const warnings = getWarnings(d);
+                return (
+                  <div key={d.id} className={`grid grid-cols-1 gap-2 py-4 ${overview ? 'md:grid-cols-12 md:gap-4 md:py-3' : 'lg:grid-cols-12 lg:gap-4 lg:py-3'} md:items-center`}>
+                    {overview ? (
+                      <>
+                        {/* Device Name */}
+                        <div className="col-span-1 md:col-span-3 flex flex-col">
+                          <span className="font-medium text-foreground truncate">{d.name ?? "—"}</span>
+                          <span className="text-xs font-mono text-muted-foreground truncate">{d.deviceId}</span>
+                        </div>
+
+                        {/* Site */}
+                        <div className="col-span-1 md:col-span-3 flex items-center gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground md:hidden w-24">Site</span>
+                          <span className="truncate text-foreground md:text-muted-foreground">{d.siteName ?? "Unassigned"}</span>
+                        </div>
+
+                        {/* Last Seen */}
+                        <div className="col-span-1 md:col-span-2 flex items-center gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground md:hidden w-24">Last seen</span>
+                          <span className="text-muted-foreground md:text-foreground">
+                            {d.lastSeenAt ? new Date(d.lastSeenAt).toLocaleString() : "Never"}
+                          </span>
+                        </div>
+
+                        {/* Warnings */}
+                        <div className="col-span-1 md:col-span-4 flex items-start gap-2 md:items-center">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground md:hidden w-24 mt-0.5 md:mt-0">Warnings</span>
+                          {warnings.length > 0 ? (
+                            <div className="flex flex-col gap-1">
+                              {warnings.map((w, i) => (
+                                <span key={i} className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
+                                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                  {w}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs md:text-sm">—</span>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Device ID */}
+                        <div className="col-span-1 lg:col-span-2 flex items-center gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground lg:hidden w-24">Device ID</span>
+                          <span className="font-mono text-xs text-foreground truncate">{d.deviceId}</span>
+                        </div>
+
+                        {/* Friendly name */}
+                        <div className="col-span-1 lg:col-span-2 flex items-center gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground lg:hidden w-24">Name</span>
+                          <span className="text-foreground truncate">{d.name ?? "—"}</span>
+                        </div>
+
+                        {/* Board */}
+                        <div className="col-span-1 lg:col-span-2 flex items-center gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground lg:hidden w-24">Board</span>
+                          <span className="text-foreground truncate">{d.board ?? "—"}</span>
+                        </div>
+
+                        {/* Interval */}
+                        <div className="col-span-1 lg:col-span-1 flex items-center gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground lg:hidden w-24">Interval</span>
+                          <span className="text-foreground">{d.expectedIntervalSeconds}s</span>
+                        </div>
+
+                        {/* Last Seen */}
+                        <div className="col-span-1 lg:col-span-2 flex items-center gap-2">
+                          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground lg:hidden w-24">Last seen</span>
+                          <span className="text-muted-foreground lg:text-foreground">
+                            {d.lastSeenAt ? new Date(d.lastSeenAt).toLocaleString() : "Never"}
+                          </span>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="col-span-1 lg:col-span-3 flex flex-wrap items-center gap-2 lg:justify-end mt-2 lg:mt-0">
                           <Button type="button" size="sm" variant="default" asChild>
                             <Link href={`/admin/devices/${d.id}/install`}>Install</Link>
                           </Button>
@@ -130,29 +215,71 @@ export function AdminDevicesList() {
                             size="sm"
                             variant="outline"
                             disabled={rotating}
-                            onClick={() => onRotate(d.id, d.name ?? d.deviceId)}
+                            onClick={() => setDeviceToRotate({ id: d.id, name: d.name ?? d.deviceId })}
                           >
-                            Rotate key
+                            Rotate
                           </Button>
                           <Button
                             type="button"
                             size="sm"
                             variant="ghost"
+                          className="hover:bg-destructive hover:text-destructive-foreground"
                             disabled={deleting}
-                            onClick={() => onDelete(d.id, d.name ?? d.deviceId)}
+                            onClick={() => setDeviceToDelete({ id: d.id, name: d.name ?? d.deviceId })}
                           >
-                            Delete
-                          </Button>
+                          Delete
+                        </Button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
-        ))}
+        )}
       </CardContent>
+
+      {deviceToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-xl animate-in zoom-in-95 duration-200">
+            <h2 className="text-lg font-semibold">Delete device</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to delete the device <strong>{deviceToDelete.name}</strong>? 
+              Past measurements will stay in the database, but the device can no longer post.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setDeviceToDelete(null)} disabled={deleting}>
+                Cancel
+              </Button>
+              <Button type="button" variant="default" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:opacity-90" onClick={() => onDelete(deviceToDelete.id)} disabled={deleting}>
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deviceToRotate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-xl animate-in zoom-in-95 duration-200">
+            <h2 className="text-lg font-semibold">Rotate API key</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to rotate the API key for <strong>{deviceToRotate.name}</strong>? 
+              The previous key will stop working immediately and the device will need to be reflashed.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setDeviceToRotate(null)} disabled={rotating}>
+                Cancel
+              </Button>
+              <Button type="button" variant="default" onClick={() => onRotate(deviceToRotate.id)} disabled={rotating}>
+                {rotating ? "Rotating..." : "Rotate Key"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
+

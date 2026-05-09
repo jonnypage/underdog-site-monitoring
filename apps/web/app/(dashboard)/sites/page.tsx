@@ -23,7 +23,7 @@ export default function SitesPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Site List</CardTitle>
+          <CardTitle>Sites</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? <p className="text-sm text-muted-foreground">Loading sites...</p> : null}
