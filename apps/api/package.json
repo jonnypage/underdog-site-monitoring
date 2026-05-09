@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm codegen && tsx watch src/server.ts",
-    "build": "pnpm codegen && tsc -p tsconfig.json",
+    "build": "pnpm codegen && tsc -p tsconfig.json && cp src/graphql/schema.graphql dist/graphql/schema.graphql",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "codegen": "graphql-codegen --config codegen.ts"
