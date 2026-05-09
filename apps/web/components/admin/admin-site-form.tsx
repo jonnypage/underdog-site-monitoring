@@ -14,7 +14,8 @@ import {
   CreateAdminSiteDocument,
   GetSiteDocument,
   GetSitesDocument,
-  UpdateAdminSiteDocument
+  UpdateAdminSiteDocument,
+  AdminDevicesDocument
 } from "@/lib/gql/generated/graphql";
 
 type Mode = "create" | "edit";
@@ -27,7 +28,11 @@ export function AdminSiteForm({ mode, siteId }: { mode: Mode; siteId?: string })
 
   const catalog = sitesData?.sensorCatalog ?? [];
   const sites = sitesData?.adminSites ?? [];
+  const { data: devicesData, loading: devicesLoading } = useQuery(AdminDevicesDocument);
+  const allDevices = devicesData?.adminDevices ?? [];
   const existing = mode === "edit" && siteId ? sites.find((s) => s.id === siteId) : undefined;
+  
+  const availableDevices = allDevices.filter(d => d.siteId == null || d.siteId === siteId);
 
   const [sName, setSName] = useState("");
   const [sLat, setSLat] = useState("");
@@ -37,6 +42,7 @@ export function AdminSiteForm({ mode, siteId }: { mode: Mode; siteId?: string })
   const [sThresholdMax, setSThresholdMax] = useState<Record<string, string>>({});
   const [siteErr, setSiteErr] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [sDeviceId, setSDeviceId] = useState("");
 
   useEffect(() => {
     if (catalog.length === 0) return;
@@ -68,7 +74,11 @@ export function AdminSiteForm({ mode, siteId }: { mode: Mode; siteId?: string })
     setSName(existing.name);
     setSLat(existing.latitude != null ? String(existing.latitude) : "");
     setSLng(existing.longitude != null ? String(existing.longitude) : "");
-  }, [mode, existing]);
+    const assignedDevice = allDevices.find(d => d.siteId === siteId);
+    if (assignedDevice) {
+      setSDeviceId(assignedDevice.id);
+    }
+  }, [mode, existing, allDevices, siteId]);
 
   async function submitSite(event: React.FormEvent) {
     event.preventDefault();
@@ -135,10 +145,11 @@ export function AdminSiteForm({ mode, siteId }: { mode: Mode; siteId?: string })
               location: null,
               ...(latitude !== undefined && longitude !== undefined ? { latitude, longitude } : {}),
               sensorReporting,
-              sensorThresholds
+              sensorThresholds,
+              deviceId: sDeviceId || null
             }
           },
-          refetchQueries: [GetSitesDocument, AdminSitesDocument],
+          refetchQueries: [GetSitesDocument, AdminSitesDocument, AdminDevicesDocument],
           awaitRefetchQueries: true
         });
       } else if (mode === "edit" && siteId) {
@@ -151,12 +162,14 @@ export function AdminSiteForm({ mode, siteId }: { mode: Mode; siteId?: string })
               latitude: latitude ?? null,
               longitude: longitude ?? null,
               sensorReporting,
-              sensorThresholds
+              sensorThresholds,
+              deviceId: sDeviceId || null
             }
           },
           refetchQueries: [
             GetSitesDocument,
             AdminSitesDocument,
+            AdminDevicesDocument,
             { query: GetSiteDocument, variables: { id: siteId } }
           ],
           awaitRefetchQueries: true
@@ -209,6 +222,24 @@ export function AdminSiteForm({ mode, siteId }: { mode: Mode; siteId?: string })
               Name
             </label>
             <Input id="admin-s-name" required value={sName} onChange={(e) => setSName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor="admin-s-device">
+              Monitoring Device (optional)
+            </label>
+            <select
+              id="admin-s-device"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={sDeviceId}
+              onChange={(e) => setSDeviceId(e.target.value)}
+            >
+              <option value="">None (Unassigned)</option>
+              {availableDevices.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name ? `${d.name} (${d.deviceId})` : d.deviceId}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">

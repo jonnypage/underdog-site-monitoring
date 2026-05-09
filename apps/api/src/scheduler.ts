@@ -25,6 +25,7 @@ async function checkOfflineDevices(db: AppDb, notifier: Notifier) {
     .execute();
 
   for (const device of devices) {
+    if (!device.site_id) continue;
     await upsertAlert(db, notifier, {
       siteId: device.site_id,
       deviceId: device.id,

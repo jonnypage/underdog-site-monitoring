@@ -15,7 +15,7 @@ type DeviceRow = {
   id: string;
   device_id: string;
   name: string | null;
-  site_id: string;
+  site_id: string | null;
   board: string | null;
   pin_map: DevicePinMap | null;
   expected_interval_seconds: number;
@@ -23,16 +23,17 @@ type DeviceRow = {
   created_at: Date;
 };
 
-async function loadSiteName(db: Context["db"], siteId: string): Promise<string> {
+async function loadSiteName(db: Context["db"], siteId: string | null): Promise<string | null> {
+  if (!siteId) return null;
   const row = await db
     .selectFrom("sites")
     .select(["name"])
     .where("id", "=", siteId)
     .executeTakeFirst();
-  return row?.name ?? "";
+  return row?.name ?? null;
 }
 
-function toAdminDevice(row: DeviceRow, siteName: string) {
+function toAdminDevice(row: DeviceRow, siteName: string | null) {
   return {
     id: row.id,
     deviceId: row.device_id,
@@ -79,7 +80,7 @@ export const deviceQueries = {
 
     let q = context.db
       .selectFrom("devices")
-      .innerJoin("sites", "sites.id", "devices.site_id")
+      .leftJoin("sites", "sites.id", "devices.site_id")
       .select([
         "devices.id as id",
         "devices.device_id as device_id",
@@ -96,7 +97,11 @@ export const deviceQueries = {
       .orderBy("devices.device_id");
 
     if (args.siteId) {
-      q = q.where("devices.site_id", "=", args.siteId);
+      if (args.siteId === "unassigned") {
+        q = q.where("devices.site_id", "is", null);
+      } else {
+        q = q.where("devices.site_id", "=", args.siteId);
+      }
     }
 
     const rows = await q.execute();
@@ -131,7 +136,7 @@ export const deviceMutations = {
     _parent: unknown,
     args: {
       input: {
-        siteId: string;
+        siteId?: string | null;
         deviceId: string;
         name?: string | null;
         board?: string | null;
@@ -150,13 +155,16 @@ export const deviceMutations = {
       throw new Error("deviceId is too long");
     }
 
-    const site = await context.db
-      .selectFrom("sites")
-      .select(["id", "name"])
-      .where("id", "=", args.input.siteId)
-      .executeTakeFirst();
-    if (!site) {
-      throw new Error("Site not found");
+    let site = null;
+    if (args.input.siteId) {
+      site = await context.db
+        .selectFrom("sites")
+        .select(["id", "name"])
+        .where("id", "=", args.input.siteId)
+        .executeTakeFirst();
+      if (!site) {
+        throw new Error("Site not found");
+      }
     }
 
     const taken = await context.db
@@ -180,7 +188,7 @@ export const deviceMutations = {
     const inserted = await context.db
       .insertInto("devices")
       .values({
-        site_id: site.id,
+        site_id: site?.id ?? null,
         device_id: deviceId,
         api_key_hash: apiKeyHash,
         expected_interval_seconds: interval,
@@ -202,7 +210,7 @@ export const deviceMutations = {
       .executeTakeFirstOrThrow();
 
     return {
-      device: toAdminDevice(inserted as DeviceRow, site.name),
+      device: toAdminDevice(inserted as DeviceRow, site?.name ?? null),
       apiKey
     };
   },
@@ -213,6 +221,7 @@ export const deviceMutations = {
       input: {
         id: string;
         deviceId?: string | null;
+        siteId?: string | null;
         name?: string | null;
         board?: string | null;
         expectedIntervalSeconds?: number | null;
@@ -225,6 +234,10 @@ export const deviceMutations = {
     const existing = await loadDeviceOrThrow(context.db, args.input.id);
 
     const patch: Record<string, unknown> = { updated_at: new Date() };
+
+    if (Object.prototype.hasOwnProperty.call(args.input, "siteId")) {
+      patch.site_id = args.input.siteId || null;
+    }
 
     if (args.input.deviceId !== undefined && args.input.deviceId !== null) {
       const next = args.input.deviceId.trim();

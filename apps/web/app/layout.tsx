@@ -14,7 +14,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = await auth();
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body suppressHydrationWarning>
         <AuthSessionProvider session={session}>
           <ThemeProvider>
             <ApolloClientProvider>{children}</ApolloClientProvider>

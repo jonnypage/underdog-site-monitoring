@@ -145,6 +145,7 @@ input CreateAdminSiteInput {
   longitude: Float
   sensorReporting: [SiteSensorReportingInput!]
   sensorThresholds: [SiteSensorThresholdInput!]
+  deviceId: ID
 }
 
 input UpdateAdminSiteInput {
@@ -155,6 +156,7 @@ input UpdateAdminSiteInput {
   longitude: Float
   sensorReporting: [SiteSensorReportingInput!]
   sensorThresholds: [SiteSensorThresholdInput!]
+  deviceId: ID
 }
 
 input UpdateMeInput {
@@ -168,8 +170,8 @@ type AdminDevice {
   id: ID!
   deviceId: String!
   name: String
-  siteId: ID!
-  siteName: String!
+  siteId: ID
+  siteName: String
   board: String
   pinMap: JSON
   expectedIntervalSeconds: Int!
@@ -183,7 +185,7 @@ type CreateAdminDeviceResult {
 }
 
 input CreateAdminDeviceInput {
-  siteId: ID!
+  siteId: ID
   deviceId: String!
   name: String
   board: String
@@ -192,6 +194,7 @@ input CreateAdminDeviceInput {
 
 input UpdateAdminDeviceInput {
   id: ID!
+  siteId: ID
   deviceId: String
   name: String
   board: String

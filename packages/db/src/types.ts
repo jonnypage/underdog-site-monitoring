@@ -88,7 +88,7 @@ export interface DevicePinMap {
 
 export interface DevicesTable {
   id: Generated<string>;
-  site_id: string;
+  site_id: string | null;
   device_id: string;
   api_key_hash: string;
   expected_interval_seconds: number;

@@ -38,10 +38,8 @@ export function AdminDeviceCreate() {
   const [createdKey, setCreatedKey] = useState<{ deviceUuid: string; deviceId: string; apiKey: string } | null>(null);
 
   useEffect(() => {
-    if (!siteId && sites.length > 0) {
-      setSiteId(sites[0].id);
-    }
-  }, [sites, siteId]);
+    // We no longer force a site selection.
+  }, []);
 
   useEffect(() => {
     if (!siteId || deviceId) return;
@@ -57,7 +55,7 @@ export function AdminDeviceCreate() {
       const r = await createDevice({
         variables: {
           input: {
-            siteId,
+            siteId: siteId || null,
             deviceId: deviceId.trim(),
             name: name.trim() || null,
             board: board || null,
@@ -129,8 +127,8 @@ export function AdminDeviceCreate() {
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="dev-site">Site</label>
-            <Select id="dev-site" value={siteId} onChange={(e) => setSiteId(e.target.value)} required>
-              <option value="" disabled>{sitesLoading ? "Loading sites…" : "Select a site"}</option>
+            <Select id="dev-site" value={siteId} onChange={(e) => setSiteId(e.target.value)}>
+              <option value="">Unassigned</option>
               {sites.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
@@ -177,7 +175,7 @@ export function AdminDeviceCreate() {
           </div>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex gap-2">
-            <Button type="submit" disabled={creating || !siteId || !deviceId.trim()}>
+            <Button type="submit" disabled={creating || !deviceId.trim()}>
               {creating ? "Creating…" : "Create device"}
             </Button>
             <Button type="button" variant="outline" asChild>

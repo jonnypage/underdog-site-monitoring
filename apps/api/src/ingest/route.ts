@@ -36,6 +36,12 @@ export function registerIngestRoute(app: FastifyInstance, db: AppDb, notifier: N
       return reply.code(401).send({ error: "Invalid device credentials" });
     }
 
+    const siteId = device.site_id;
+    if (!siteId) {
+      await db.updateTable("devices").set({ last_seen_at: new Date(), updated_at: new Date() }).where("id", "=", device.id).execute();
+      return reply.send({ ok: true, inserted: 0, ignored: true });
+    }
+
     const catalogKeys = await db.selectFrom("sensor_catalog").select("key").execute();
     const allowed = new Set(catalogKeys.map((r) => r.key));
     const rawEntries = Object.entries(payload.readings);
@@ -44,7 +50,7 @@ export function registerIngestRoute(app: FastifyInstance, db: AppDb, notifier: N
       return reply.code(400).send({ error: "Unknown sensor keys", unknown });
     }
 
-    const enabledByKey = await getSiteSensorEnabledMap(db, device.site_id);
+    const enabledByKey = await getSiteSensorEnabledMap(db, siteId);
     const readings = rawEntries as [string, number][];
 
     const takenAt = new Date(payload.timestamp);
@@ -55,7 +61,7 @@ export function registerIngestRoute(app: FastifyInstance, db: AppDb, notifier: N
           .insertInto("measurements")
           .values(
             readings.map(([sensor, value]) => ({
-              site_id: device.site_id,
+              site_id: siteId,
               device_id: device.id,
               sensor,
               value,
@@ -71,17 +77,17 @@ export function registerIngestRoute(app: FastifyInstance, db: AppDb, notifier: N
         .where("id", "=", device.id)
         .execute();
 
-      await resolveActiveAlert(trx, device.site_id, "device_offline");
+      await resolveActiveAlert(trx, siteId, "device_offline");
     });
 
     for (const [sensor, value] of readings) {
       if (enabledByKey[sensor] === false) {
         continue;
       }
-      const anomalies = await detectAnomalies(db, device.site_id, sensor, value);
+      const anomalies = await detectAnomalies(db, siteId, sensor, value);
       for (const anomaly of anomalies) {
         await upsertAlert(db, notifier, {
-          siteId: device.site_id,
+          siteId,
           deviceId: device.id,
           type: anomaly.type,
           severity: anomaly.severity,

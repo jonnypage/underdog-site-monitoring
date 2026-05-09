@@ -23,11 +23,12 @@ export function AdminDevicesList() {
     const groups = new Map<string, { siteName: string; devices: typeof data extends infer T ? (T extends { adminDevices: infer D } ? D : never) : never }>();
     const devices = data?.adminDevices ?? [];
     for (const d of devices) {
-      const g = groups.get(d.siteId);
+      const key = d.siteId || "unassigned";
+      const g = groups.get(key);
       if (g) {
         g.devices.push(d);
       } else {
-        groups.set(d.siteId, { siteName: d.siteName, devices: [d] });
+        groups.set(key, { siteName: d.siteName || "Unassigned", devices: [d] });
       }
     }
     return [...groups.entries()]
@@ -95,7 +96,7 @@ export function AdminDevicesList() {
         ) : null}
 
         {grouped.map((group) => (
-          <div key={group.siteId} className="space-y-3">
+          <div key={group.siteId || "unassigned"} className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{group.siteName}</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

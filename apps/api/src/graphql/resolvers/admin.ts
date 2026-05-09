@@ -299,6 +299,7 @@ export const adminMutations = {
         longitude?: number | null;
         sensorReporting?: { key: string; enabled: boolean }[] | null;
         sensorThresholds?: { key: string; minValue?: number | null; maxValue?: number | null }[] | null;
+        deviceId?: string | null;
       };
     },
     context: Context
@@ -342,6 +343,10 @@ export const adminMutations = {
         );
       }
 
+      if (args.input.deviceId) {
+        await trx.updateTable("devices").set({ site_id: site.id, updated_at: new Date() }).where("id", "=", args.input.deviceId).execute();
+      }
+
       return site;
     });
 
@@ -370,6 +375,7 @@ export const adminMutations = {
         longitude?: number | null;
         sensorReporting?: { key: string; enabled: boolean }[] | null;
         sensorThresholds?: { key: string; minValue?: number | null; maxValue?: number | null }[] | null;
+        deviceId?: string | null;
       };
     },
     context: Context
@@ -449,6 +455,15 @@ export const adminMutations = {
     }
 
     await context.db.updateTable("sites").set(patch as never).where("id", "=", args.input.id).execute();
+
+    if (Object.prototype.hasOwnProperty.call(args.input, "deviceId")) {
+      await context.db.transaction().execute(async (trx) => {
+        await trx.updateTable("devices").set({ site_id: null, updated_at: new Date() }).where("site_id", "=", args.input.id).execute();
+        if (args.input.deviceId) {
+          await trx.updateTable("devices").set({ site_id: args.input.id, updated_at: new Date() }).where("id", "=", args.input.deviceId).execute();
+        }
+      });
+    }
 
     const row = await context.db.selectFrom("sites").selectAll().where("id", "=", args.input.id).executeTakeFirstOrThrow();
     const sensorReporting = await getSiteSensorReportingForGraphql(context.db, row.id);
