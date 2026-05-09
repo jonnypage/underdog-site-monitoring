@@ -6,9 +6,13 @@ export async function getUserFromSessionCookie(db: AppDb, cookieHeader?: string)
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
   if (!secret || !cookieHeader) return null;
 
+  const useSecureCookies = process.env.AUTH_URL?.startsWith("https://");
+  const cookieName = useSecureCookies ? "__Secure-authjs.session-token" : "authjs.session-token";
+
   const token = await getToken({
     req: { headers: { cookie: cookieHeader } } as { headers: { cookie: string } },
-    secret
+    secret,
+    cookieName
   });
 
   const userId = token?.sub;

@@ -6,9 +6,25 @@ import type { UserRole } from "@app/db/types";
 
 const db = process.env.DATABASE_URL ? createDb() : null;
 
+const useSecureCookies = process.env.AUTH_URL?.startsWith("https://");
+const hostName = new URL(process.env.AUTH_URL || "http://localhost:3333").hostname;
+const cookieDomain = hostName === "localhost" || hostName === "127.0.0.1" ? undefined : `.${hostName}`;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Credentials provider requires JWT sessions (database sessions are not supported for this flow).
   session: { strategy: "jwt" },
+  cookies: {
+    sessionToken: {
+      name: useSecureCookies ? "__Secure-authjs.session-token" : "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        domain: cookieDomain
+      }
+    }
+  },
   providers: [
     Credentials({
       credentials: {
