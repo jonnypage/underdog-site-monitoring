@@ -1,0 +1,2 @@
+# Ensure firmware images are stored as binary and never line-ending munged.
+apps/web/public/firmware/**/*.bin binary

@@ -1,0 +1,39 @@
+query AdminSensorCatalogList {
+  sensorCatalog {
+    id
+    key
+    displayName
+    unit
+    physicalMin
+    physicalMax
+    sortOrder
+  }
+}
+
+mutation CreateSensorCatalogEntry($input: CreateSensorCatalogEntryInput!) {
+  createSensorCatalogEntry(input: $input) {
+    id
+    key
+    displayName
+    unit
+    physicalMin
+    physicalMax
+    sortOrder
+  }
+}
+
+mutation UpdateSensorCatalogEntry($input: UpdateSensorCatalogEntryInput!) {
+  updateSensorCatalogEntry(input: $input) {
+    id
+    key
+    displayName
+    unit
+    physicalMin
+    physicalMax
+    sortOrder
+  }
+}
+
+mutation DeleteSensorCatalogEntry($id: ID!) {
+  deleteSensorCatalogEntry(id: $id)
+}

@@ -1,0 +1,112 @@
+query AdminUsers {
+  adminUsers {
+    id
+    name
+    email
+    role
+    createdAt
+    assignedSiteIds
+  }
+}
+
+query AdminSites {
+  sensorCatalog {
+    id
+    key
+    displayName
+    unit
+    physicalMin
+    physicalMax
+    sortOrder
+  }
+  adminSites {
+    id
+    name
+    location
+    latitude
+    longitude
+    sensorReporting {
+      key
+      displayName
+      unit
+      physicalMin
+      physicalMax
+      rangeMin
+      rangeMax
+      thresholdMinOverride
+      thresholdMaxOverride
+      enabled
+    }
+    createdAt
+    updatedAt
+  }
+}
+
+mutation CreateAdminUser($input: CreateAdminUserInput!) {
+  createAdminUser(input: $input) {
+    id
+    email
+    role
+    assignedSiteIds
+  }
+}
+
+mutation UpdateAdminUser($input: UpdateAdminUserInput!) {
+  updateAdminUser(input: $input) {
+    id
+    email
+    role
+    assignedSiteIds
+  }
+}
+
+mutation ResetAdminUserPassword($id: ID!, $newPassword: String!) {
+  resetAdminUserPassword(id: $id, newPassword: $newPassword) {
+    id
+    email
+  }
+}
+
+mutation CreateAdminSite($input: CreateAdminSiteInput!) {
+  createAdminSite(input: $input) {
+    id
+    name
+    location
+    latitude
+    longitude
+    sensorReporting {
+      key
+      displayName
+      unit
+      physicalMin
+      physicalMax
+      rangeMin
+      rangeMax
+      thresholdMinOverride
+      thresholdMaxOverride
+      enabled
+    }
+  }
+}
+
+mutation UpdateAdminSite($input: UpdateAdminSiteInput!) {
+  updateAdminSite(input: $input) {
+    id
+    name
+    location
+    latitude
+    longitude
+    sensorReporting {
+      key
+      displayName
+      unit
+      physicalMin
+      physicalMax
+      rangeMin
+      rangeMax
+      thresholdMinOverride
+      thresholdMaxOverride
+      enabled
+    }
+  }
+}

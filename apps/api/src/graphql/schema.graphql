@@ -1,0 +1,230 @@
+scalar DateTime
+scalar JSON
+
+enum TimeRange {
+  LAST_24H
+  LAST_7D
+  LAST_30D
+}
+
+enum SiteStatus {
+  healthy
+  warning
+  critical
+}
+
+type SiteSensorReporting {
+  key: String!
+  displayName: String!
+  unit: String!
+  physicalMin: Float
+  physicalMax: Float
+  rangeMin: Float
+  rangeMax: Float
+  thresholdMinOverride: Float
+  thresholdMaxOverride: Float
+  enabled: Boolean!
+}
+
+type Site {
+  id: ID!
+  name: String!
+  location: String
+  latitude: Float
+  longitude: Float
+  sensorReporting: [SiteSensorReporting!]!
+  status: SiteStatus!
+  lastUpdate: DateTime
+  role: String!
+}
+
+type Measurement {
+  sensor: String!
+  takenAt: DateTime!
+  value: Float!
+}
+
+type Alert {
+  id: ID!
+  siteId: ID!
+  type: String!
+  severity: String!
+  status: String!
+  message: String!
+  createdAt: DateTime!
+  resolvedAt: DateTime
+}
+
+type User {
+  id: ID!
+  name: String
+  email: String!
+  role: String!
+}
+
+type AdminUser {
+  id: ID!
+  name: String
+  email: String!
+  role: String!
+  createdAt: DateTime!
+  assignedSiteIds: [ID!]!
+}
+
+type AdminSite {
+  id: ID!
+  name: String!
+  location: String
+  latitude: Float
+  longitude: Float
+  sensorReporting: [SiteSensorReporting!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type SensorCatalogEntry {
+  id: ID!
+  key: String!
+  displayName: String!
+  unit: String!
+  physicalMin: Float
+  physicalMax: Float
+  sortOrder: Int!
+}
+
+input CreateSensorCatalogEntryInput {
+  key: String!
+  displayName: String!
+  unit: String!
+  physicalMin: Float
+  physicalMax: Float
+  sortOrder: Int
+}
+
+input UpdateSensorCatalogEntryInput {
+  id: ID!
+  displayName: String
+  unit: String
+  physicalMin: Float
+  physicalMax: Float
+  sortOrder: Int
+}
+
+input CreateAdminUserInput {
+  email: String!
+  password: String!
+  name: String
+  role: String!
+  assignedSiteIds: [ID!]
+}
+
+input UpdateAdminUserInput {
+  id: ID!
+  email: String
+  name: String
+  role: String
+  password: String
+  assignedSiteIds: [ID!]
+}
+
+input SiteSensorReportingInput {
+  key: String!
+  enabled: Boolean!
+}
+
+input SiteSensorThresholdInput {
+  key: String!
+  minValue: Float
+  maxValue: Float
+}
+
+input CreateAdminSiteInput {
+  name: String!
+  location: String
+  latitude: Float
+  longitude: Float
+  sensorReporting: [SiteSensorReportingInput!]
+  sensorThresholds: [SiteSensorThresholdInput!]
+}
+
+input UpdateAdminSiteInput {
+  id: ID!
+  name: String!
+  location: String
+  latitude: Float
+  longitude: Float
+  sensorReporting: [SiteSensorReportingInput!]
+  sensorThresholds: [SiteSensorThresholdInput!]
+}
+
+input UpdateMeInput {
+  name: String
+  email: String!
+  currentPassword: String!
+  newPassword: String
+}
+
+type AdminDevice {
+  id: ID!
+  deviceId: String!
+  name: String
+  siteId: ID!
+  siteName: String!
+  board: String
+  pinMap: JSON
+  expectedIntervalSeconds: Int!
+  lastSeenAt: DateTime
+  createdAt: DateTime!
+}
+
+type CreateAdminDeviceResult {
+  device: AdminDevice!
+  apiKey: String!
+}
+
+input CreateAdminDeviceInput {
+  siteId: ID!
+  deviceId: String!
+  name: String
+  board: String
+  expectedIntervalSeconds: Int
+}
+
+input UpdateAdminDeviceInput {
+  id: ID!
+  deviceId: String
+  name: String
+  board: String
+  expectedIntervalSeconds: Int
+  pinMap: JSON
+}
+
+type Query {
+  getSites: [Site!]!
+  getSite(id: ID!): Site
+  getMeasurements(siteId: ID!, range: TimeRange!): [Measurement!]!
+  getAlerts(siteId: ID, type: String, status: String): [Alert!]!
+  getMe: User
+  sensorCatalog: [SensorCatalogEntry!]!
+  adminUsers: [AdminUser!]!
+  adminSites: [AdminSite!]!
+  adminDevices(siteId: ID): [AdminDevice!]!
+  adminDevice(id: ID!): AdminDevice
+}
+
+type Mutation {
+  updateMe(input: UpdateMeInput!): User!
+  createAdminUser(input: CreateAdminUserInput!): AdminUser!
+  updateAdminUser(input: UpdateAdminUserInput!): AdminUser!
+  """Admin only. Sets a new password without requiring the user's current password."""
+  resetAdminUserPassword(id: ID!, newPassword: String!): AdminUser!
+  createAdminSite(input: CreateAdminSiteInput!): AdminSite!
+  updateAdminSite(input: UpdateAdminSiteInput!): AdminSite!
+  createSensorCatalogEntry(input: CreateSensorCatalogEntryInput!): SensorCatalogEntry!
+  updateSensorCatalogEntry(input: UpdateSensorCatalogEntryInput!): SensorCatalogEntry!
+  deleteSensorCatalogEntry(id: ID!): Boolean!
+  createAdminDevice(input: CreateAdminDeviceInput!): CreateAdminDeviceResult!
+  updateAdminDevice(input: UpdateAdminDeviceInput!): AdminDevice!
+  rotateAdminDeviceApiKey(id: ID!): String!
+  deleteAdminDevice(id: ID!): Boolean!
+}

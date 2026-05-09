@@ -1,0 +1,70 @@
+query AdminDevices {
+  adminDevices {
+    id
+    deviceId
+    name
+    siteId
+    siteName
+    board
+    pinMap
+    expectedIntervalSeconds
+    lastSeenAt
+    createdAt
+  }
+}
+
+query AdminDevice($id: ID!) {
+  adminDevice(id: $id) {
+    id
+    deviceId
+    name
+    siteId
+    siteName
+    board
+    pinMap
+    expectedIntervalSeconds
+    lastSeenAt
+    createdAt
+  }
+}
+
+mutation CreateAdminDevice($input: CreateAdminDeviceInput!) {
+  createAdminDevice(input: $input) {
+    apiKey
+    device {
+      id
+      deviceId
+      name
+      siteId
+      siteName
+      board
+      pinMap
+      expectedIntervalSeconds
+      lastSeenAt
+      createdAt
+    }
+  }
+}
+
+mutation UpdateAdminDevice($input: UpdateAdminDeviceInput!) {
+  updateAdminDevice(input: $input) {
+    id
+    deviceId
+    name
+    siteId
+    siteName
+    board
+    pinMap
+    expectedIntervalSeconds
+    lastSeenAt
+    createdAt
+  }
+}
+
+mutation RotateAdminDeviceApiKey($id: ID!) {
+  rotateAdminDeviceApiKey(id: $id)
+}
+
+mutation DeleteAdminDevice($id: ID!) {
+  deleteAdminDevice(id: $id)
+}

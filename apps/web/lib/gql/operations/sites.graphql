@@ -1,0 +1,47 @@
+query GetSites {
+  getSites {
+    id
+    name
+    location
+    latitude
+    longitude
+    sensorReporting {
+      key
+      displayName
+      unit
+      physicalMin
+      physicalMax
+      rangeMin
+      rangeMax
+      thresholdMinOverride
+      thresholdMaxOverride
+      enabled
+    }
+    status
+    lastUpdate
+  }
+}
+
+query GetSite($id: ID!) {
+  getSite(id: $id) {
+    id
+    name
+    location
+    latitude
+    longitude
+    sensorReporting {
+      key
+      displayName
+      unit
+      physicalMin
+      physicalMax
+      rangeMin
+      rangeMax
+      thresholdMinOverride
+      thresholdMaxOverride
+      enabled
+    }
+    status
+    lastUpdate
+  }
+}
