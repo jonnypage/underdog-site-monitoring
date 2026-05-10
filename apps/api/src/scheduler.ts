@@ -19,7 +19,7 @@ async function checkOfflineDevices(db: AppDb, notifier: Notifier) {
     .where((eb) =>
       eb.or([
         eb("devices.last_seen_at", "is", null),
-        sql<boolean>`devices.last_seen_at < now() - (devices.expected_interval_seconds * 3 || ' seconds')::interval`
+        sql<boolean>`devices.last_seen_at < now() - interval '1 hour'`
       ])
     )
     .execute();
@@ -31,7 +31,7 @@ async function checkOfflineDevices(db: AppDb, notifier: Notifier) {
       deviceId: device.id,
       type: "device_offline",
       severity: "critical",
-      message: `${device.device_id} at ${device.site_name} has not reported within the expected interval.`
+      message: `\`${device.device_id}\` at ${device.site_name} has not reported within the expected interval.`
     });
   }
 }

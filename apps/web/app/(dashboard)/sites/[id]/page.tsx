@@ -6,8 +6,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@apollo/client";
 import { useSession } from "next-auth/react";
 import { AlertList } from "@/components/alerts/alert-list";
-import { SensorLineChart } from "@/components/charts/sensor-line";
-import { RangeSelector, type TimeRange } from "@/components/range-selector";
+import { SensorSparkline } from "@/components/charts/sensor-sparkline";
 import { SiteStatusBadge } from "@/components/site-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +19,7 @@ export default function SiteDetailPage() {
   const siteId = params.id;
   const { data: session, status: sessionStatus } = useSession();
   const isAdmin = sessionStatus === "authenticated" && session?.user?.role === "admin";
-  const [range, setRange] = useState<TimeRange>(GqlTimeRange.Last_24H);
+  const range = GqlTimeRange.Last_7D;
   const siteQuery = useQuery(GetSiteDocument, { variables: { id: siteId } });
   const measurementsQuery = useQuery(GetMeasurementsDocument, { variables: { siteId, range } });
   const alertsQuery = useQuery(GetAlertsDocument, { variables: { siteId } });
@@ -36,7 +35,7 @@ export default function SiteDetailPage() {
   const chartData = useMemo(() => {
     const rows = measurementsQuery.data?.getMeasurements ?? [];
     return activeReporting.map((r) => ({
-      id: `${r.displayName} (${r.unit})`,
+      key: r.key,
       data: rows
         .filter((row) => row.sensor === r.key)
         .map((row) => ({ x: row.takenAt, y: row.value }))
@@ -97,15 +96,26 @@ export default function SiteDetailPage() {
         <div className="grid gap-4 md:grid-cols-4">
           {activeReporting.map((r) => (
             <Card key={r.key}>
-              <CardHeader>
-                <CardTitle className="text-sm leading-snug">{r.displayName}</CardTitle>
-                <p className="text-xs font-normal text-muted-foreground">{r.unit}</p>
-                {r.rangeMin != null && r.rangeMax != null ? (
-                  <p className="text-xs text-muted-foreground">Alert range {r.rangeMin}–{r.rangeMax}</p>
-                ) : null}
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <CardTitle className="text-sm leading-tight">{r.displayName}</CardTitle>
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase">{r.unit}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold leading-none">{latest[r.key]?.value ?? "-"}</p>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-semibold">{latest[r.key]?.value ?? "-"}</p>
+              <CardContent className="pt-0">
+                <SensorSparkline 
+                  data={chartData.find(c => c.key === r.key)?.data ?? []} 
+                  min={r.physicalMin ?? undefined}
+                  max={r.physicalMax ?? undefined}
+                />
+                {r.rangeMin != null && r.rangeMax != null ? (
+                  <p className="mt-2 text-[10px] text-muted-foreground italic">Sensor range: {r.rangeMin}–{r.rangeMax} {r.unit}</p>
+                ) : null}
               </CardContent>
             </Card>
           ))}
@@ -116,17 +126,7 @@ export default function SiteDetailPage() {
         <SiteLocationMap latitude={site.latitude} longitude={site.longitude} />
       ) : null}
 
-      {activeReporting.length > 0 ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <CardTitle>Measurements</CardTitle>
-            <RangeSelector value={range} onChange={setRange} />
-          </CardHeader>
-          <CardContent>
-            <SensorLineChart data={chartData} />
-          </CardContent>
-        </Card>
-      ) : null}
+
     </div>
   );
 }

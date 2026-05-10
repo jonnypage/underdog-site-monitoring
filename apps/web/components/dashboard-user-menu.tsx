@@ -46,7 +46,6 @@ export function DashboardUserMenu({ email }: { email: string | null }) {
         onClick={() => setOpen((v) => !v)}
       >
         <UserRound className="h-4 w-4 shrink-0" aria-hidden />
-        <span className="max-w-[200px] truncate">{email ?? "Account"}</span>
         <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} aria-hidden />
       </Button>
       {open ? (

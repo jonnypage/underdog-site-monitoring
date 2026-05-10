@@ -33,7 +33,7 @@ function mapOverviewOptions(): google.maps.MapOptions {
   return {
     mapTypeId: google.maps.MapTypeId.HYBRID,
     streetViewControl: false,
-    mapTypeControl: true,
+    mapTypeControl: false,
     mapTypeControlOptions: {
       mapTypeIds: [
         google.maps.MapTypeId.ROADMAP,
@@ -41,7 +41,7 @@ function mapOverviewOptions(): google.maps.MapOptions {
         google.maps.MapTypeId.HYBRID,
       ],
     },
-    fullscreenControl: true,
+    fullscreenControl: false,
   };
 }
 
@@ -165,12 +165,13 @@ export function SitesOverviewMap({ sites }: SitesOverviewMapProps) {
     <div className='space-y-2'>
       <div className='relative w-full overflow-hidden rounded-md border border-border aspect-[4/3] min-h-[240px]'>
         <GoogleMap
-          mapContainerStyle={{ width: '100%', height: '100%' }}
+          mapContainerStyle={{ width: '100%', height: '75%' }}
           center={DEFAULT_CENTER}
           zoom={4}
           options={mapOverviewOptions()}
           onLoad={onMapLoad}
           clickableIcons={false}
+          
         >
           {pins.map((p) => (
             <Fragment key={p.id}>

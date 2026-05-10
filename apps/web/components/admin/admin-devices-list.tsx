@@ -63,9 +63,8 @@ export function AdminDevicesList({ overview = false }: { overview?: boolean }) {
       warnings.push("Never seen");
     } else {
       const lastSeen = new Date(device.lastSeenAt).getTime();
-      const intervalMs = device.expectedIntervalSeconds * 1000;
-      // API scheduler considers it offline if more than 3x the interval has passed
-      if (Date.now() - lastSeen > intervalMs * 3) {
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      if (Date.now() - lastSeen > ONE_HOUR_MS) {
         warnings.push("Offline");
       }
     }
