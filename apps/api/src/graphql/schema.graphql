@@ -24,6 +24,7 @@ type SiteSensorReporting {
   thresholdMinOverride: Float
   thresholdMaxOverride: Float
   enabled: Boolean!
+  currentValue: Float
 }
 
 type Site {
@@ -206,6 +207,7 @@ type Query {
   getSites: [Site!]!
   getSite(id: ID!): Site
   getMeasurements(siteId: ID!, range: TimeRange!): [Measurement!]!
+  getSensorMeasurements(siteId: ID!, sensorKey: String!, range: TimeRange!): [Measurement!]!
   getAlerts(siteId: ID, type: String, status: String): [Alert!]!
   getMe: User
   sensorCatalog: [SensorCatalogEntry!]!

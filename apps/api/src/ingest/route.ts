@@ -51,7 +51,10 @@ export function registerIngestRoute(app: FastifyInstance, db: AppDb, notifier: N
     }
 
     const enabledByKey = await getSiteSensorEnabledMap(db, siteId);
-    const readings = rawEntries as [string, number][];
+    const readings = (rawEntries as [string, number][]).map(([sensor, value]) => [
+      sensor,
+      Number(value.toFixed(2))
+    ] as [string, number]);
 
     const takenAt = new Date(payload.timestamp);
 

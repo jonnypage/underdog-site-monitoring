@@ -11,7 +11,13 @@ import { startScheduler } from "./scheduler.js";
 
 const db = createDb();
 const notifier = new EmailNotifier(db);
-const app = Fastify({ logger: true });
+const app = Fastify({
+  logger:
+    process.env.NODE_ENV === "production"
+      ? { level: "warn" }
+      : true,
+  disableRequestLogging: process.env.NODE_ENV === "production"
+});
 
 const devCors = process.env.NODE_ENV !== "production";
 

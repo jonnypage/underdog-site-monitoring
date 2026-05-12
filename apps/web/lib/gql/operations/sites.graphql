@@ -16,6 +16,7 @@ query GetSites {
       thresholdMinOverride
       thresholdMaxOverride
       enabled
+      currentValue
     }
     status
     lastUpdate
@@ -40,8 +41,17 @@ query GetSite($id: ID!) {
       thresholdMinOverride
       thresholdMaxOverride
       enabled
+      currentValue
     }
     status
     lastUpdate
+  }
+}
+
+query GetSensorMeasurements($siteId: ID!, $sensorKey: String!, $range: TimeRange!) {
+  getSensorMeasurements(siteId: $siteId, sensorKey: $sensorKey, range: $range) {
+    sensor
+    takenAt
+    value
   }
 }

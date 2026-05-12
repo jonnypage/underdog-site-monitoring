@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/status-pill";
 
 export interface AlertListItem {
   id: string;
@@ -68,8 +68,8 @@ export function AlertList({ alerts }: { alerts: AlertListItem[] }) {
             <span className="text-sm font-bold">{getAlertLabel(alert.type)}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge>{alert.severity}</Badge>
-            <Badge>{alert.status}</Badge>
+            <StatusPill value={alert.severity} />
+            <StatusPill value={alert.status} />
           </div>
           <p className="text-sm leading-relaxed text-foreground/90">
             <FormattedMessage text={alert.message} />

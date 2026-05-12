@@ -58,7 +58,7 @@ async function getLastUpdate(context: Context, siteId: string, enabledByKey: Rec
   return row?.last_update ?? null;
 }
 
-function gqlSensorReporting(rows: SiteSensorReportingRow[]) {
+function gqlSensorReporting(rows: SiteSensorReportingRow[], latestMap: Record<string, number>) {
   return rows.map((r) => ({
     key: r.key,
     displayName: r.display_name,
@@ -69,7 +69,8 @@ function gqlSensorReporting(rows: SiteSensorReportingRow[]) {
     rangeMax: r.range_max,
     thresholdMinOverride: r.threshold_min_override,
     thresholdMaxOverride: r.threshold_max_override,
-    enabled: r.enabled
+    enabled: r.enabled,
+    currentValue: latestMap[r.key] ?? null
   }));
 }
 
@@ -79,13 +80,32 @@ async function formatSite(
   reportingRows: SiteSensorReportingRow[]
 ) {
   const enabledByKey = enabledMapFromReporting(reportingRows);
+  const enabledSensors = Object.keys(enabledByKey).filter(k => enabledByKey[k]);
+  
+  const latestMap: Record<string, number> = {};
+  if (enabledSensors.length > 0) {
+    const latestRows = await context.db
+      .selectFrom("measurements")
+      .select(["sensor", "value"])
+      .distinctOn("sensor")
+      .where("site_id", "=", site.id)
+      .where("sensor", "in", enabledSensors)
+      .orderBy("sensor")
+      .orderBy("taken_at", "desc")
+      .execute();
+      
+    for (const row of latestRows) {
+      latestMap[row.sensor] = Number(Number(row.value).toFixed(2));
+    }
+  }
+
   return {
     id: site.id,
     name: site.name,
     location: site.location,
     latitude: site.latitude,
     longitude: site.longitude,
-    sensorReporting: gqlSensorReporting(reportingRows),
+    sensorReporting: gqlSensorReporting(reportingRows, latestMap),
     status: await getSiteStatus(context, site.id, enabledByKey),
     lastUpdate: await getLastUpdate(context, site.id, enabledByKey),
     role: context.user?.role ?? "site_viewer"

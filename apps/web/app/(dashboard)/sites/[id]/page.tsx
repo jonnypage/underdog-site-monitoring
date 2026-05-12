@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteDetailSkeleton } from "@/components/sites/site-detail-skeleton";
 import { SiteLocationMap } from "@/components/sites/site-location-map";
+import { SiteSensorCard } from "@/components/sites/site-sensor-card";
 import { GetAlertsDocument, GetMeasurementsDocument, GetSiteDocument, TimeRange as GqlTimeRange } from "@/lib/gql/generated/graphql";
 
 export default function SiteDetailPage() {
@@ -43,11 +44,10 @@ export default function SiteDetailPage() {
   }, [measurementsQuery.data, activeReporting]);
 
   const latest = useMemo(() => {
-    const rows = measurementsQuery.data?.getMeasurements ?? [];
     return Object.fromEntries(
-      activeReporting.map((r) => [r.key, [...rows].reverse().find((row) => row.sensor === r.key)])
+      activeReporting.map((r) => [r.key, r.currentValue])
     );
-  }, [measurementsQuery.data, activeReporting]);
+  }, [activeReporting]);
 
   const alerts = alertsQuery.data?.getAlerts ?? [];
 
@@ -93,31 +93,19 @@ export default function SiteDetailPage() {
       {activeReporting.length === 0 ? (
         <p className="text-sm text-muted-foreground">No sensors are enabled for this site. An administrator can enable them under Admin → Sites.</p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-4">
-          {activeReporting.map((r) => (
-            <Card key={r.key}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <CardTitle className="text-sm leading-tight">{r.displayName}</CardTitle>
-                    <p className="text-[10px] font-medium text-muted-foreground uppercase">{r.unit}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold leading-none">{latest[r.key]?.value ?? "-"}</p>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <SensorSparkline 
-                  data={chartData.find(c => c.key === r.key)?.data ?? []} 
-                  min={r.physicalMin ?? undefined}
-                  max={r.physicalMax ?? undefined}
-                />
-                {r.rangeMin != null && r.rangeMax != null ? (
-                  <p className="mt-2 text-[10px] text-muted-foreground italic">Sensor range: {r.rangeMin}–{r.rangeMax} {r.unit}</p>
-                ) : null}
-              </CardContent>
-            </Card>
+        <div className={`grid gap-4 ${
+          activeReporting.length === 1 ? "md:grid-cols-1" :
+          activeReporting.length === 2 ? "md:grid-cols-2" :
+          activeReporting.length === 3 ? "md:grid-cols-3" :
+          "md:grid-cols-4"
+        }`}>
+          {activeReporting.map((report) => (
+            <SiteSensorCard
+              key={report.key}
+              siteId={siteId}
+              sensor={report}
+              chartData={chartData.find(c => c.key === report.key)?.data ?? []}
+            />
           ))}
         </div>
       )}

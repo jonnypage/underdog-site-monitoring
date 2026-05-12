@@ -237,8 +237,11 @@ Environment variables:
 - `RESEND_API_KEY`
 - `ALERT_FROM_EMAIL`
 - `COOLDOWN_MINUTES` - optional, defaults to `45`
+- `PG_POOL_MAX` - optional; caps PostgreSQL pool size (default `10`). Try `3` on the API service to reduce idle memory slightly.
 
 Railway provides `PORT`; the API reads it automatically.
+
+**Memory:** A Node.js process with Fastify, GraphQL, and `pg` often sits around **~150–250MB RSS** at idle; that is mostly the V8 heap and loaded modules, not a leak. You can trim a little client-side overhead by capping the DB pool on this service only, for example `PG_POOL_MAX=3` (see `.env.example`). Production logging is set to `warn` with request logging disabled to reduce noise and a bit of churn. For the largest savings on Railway, right-size the service to the smallest plan that stays above peak RSS (including spikes during ingest or bcrypt work).
 
 ### Web Service
 

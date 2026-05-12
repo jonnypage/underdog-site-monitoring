@@ -111,6 +111,7 @@ Keep the same values in all three (or symlink). Committed templates: `packages/d
 Shared:
 
 - `DATABASE_URL` - Railway PostgreSQL or local Postgres connection string.
+- `PG_POOL_MAX` - optional; max connections in the shared `pg` pool (`packages/db` `createDb`). Default `10`. Use a lower value on the **API** Railway service (e.g. `3`) if you want slightly lower client memory; the web app can keep the default or set its own.
 
 Web/Auth:
 

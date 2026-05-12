@@ -45,20 +45,30 @@ export default function SitesPage() {
                 {/* Site Rows */}
                 <div className="divide-y divide-border">
                   {sites.map((site: any) => (
-                    <div key={site.id} className="grid grid-cols-1 gap-2 py-4 md:grid-cols-12 md:gap-4 md:py-3 md:items-center">
+                    <div 
+                      key={site.id} 
+                      className={`group grid grid-cols-1 gap-2 py-4 px-2 -mx-2 rounded-md transition-colors cursor-pointer md:grid-cols-12 md:gap-4 md:py-3 md:items-center hover:bg-muted/50 ${isPending ? 'opacity-70 cursor-wait' : ''}`}
+                      onClick={() => {
+                        if (isPending) return;
+                        setPendingSiteId(site.id);
+                        startTransition(() => {
+                          router.push(`/sites/${site.id}`);
+                        });
+                      }}
+                      onMouseEnter={() => router.prefetch(`/sites/${site.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          if (isPending) return;
+                          setPendingSiteId(site.id);
+                          startTransition(() => router.push(`/sites/${site.id}`));
+                        }
+                      }}
+                    >
                       <div className="col-span-1 md:col-span-6">
-                        <button
-                          type="button"
-                          className="inline-flex max-w-full items-center gap-2 text-left font-medium text-primary hover:underline disabled:cursor-wait disabled:opacity-70"
-                          disabled={isPending}
-                          onMouseEnter={() => router.prefetch(`/sites/${site.id}`)}
-                          onClick={() => {
-                            setPendingSiteId(site.id);
-                            startTransition(() => {
-                              router.push(`/sites/${site.id}`);
-                            });
-                          }}
-                        >
+                        <div className="inline-flex max-w-full items-center gap-2 text-left font-medium text-primary">
                           {pendingSiteId === site.id && isPending ? (
                             <span
                               className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent"
@@ -66,7 +76,7 @@ export default function SitesPage() {
                             />
                           ) : null}
                           <span className="min-w-0 text-base md:text-sm truncate">{site.name}</span>
-                        </button>
+                        </div>
                       </div>
                       <div className="col-span-1 md:col-span-3 flex items-center gap-2">
                         <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground md:hidden w-24">Status</span>

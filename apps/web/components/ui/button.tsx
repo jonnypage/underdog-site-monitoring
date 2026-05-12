@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   asChild?: boolean;
   variant?: "default" | "outline" | "ghost";
-  size?: "default" | "sm";
+  size?: "default" | "sm" | "icon";
 };
 
 export function Button({ asChild, className, variant = "default", size = "default", ...props }: ButtonProps) {
@@ -19,6 +19,7 @@ export function Button({ asChild, className, variant = "default", size = "defaul
         variant === "ghost" && "hover:bg-muted",
         size === "default" && "h-10 px-4 py-2",
         size === "sm" && "h-8 px-3",
+        size === "icon" && "h-10 w-10",
         className
       )}
       {...props}

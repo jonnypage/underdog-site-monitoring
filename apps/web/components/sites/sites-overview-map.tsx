@@ -163,9 +163,9 @@ export function SitesOverviewMap({ sites }: SitesOverviewMapProps) {
 
   return (
     <div className='space-y-2'>
-      <div className='relative w-full overflow-hidden rounded-md border border-border aspect-[4/3] min-h-[240px]'>
+      <div className='relative w-full overflow-hidden rounded-md border border-border aspect-[4/3] min-h-[400px]'>
         <GoogleMap
-          mapContainerStyle={{ width: '100%', height: '75%' }}
+          mapContainerStyle={{ width: '100%', height: '75%', minHeight: '400px' }}
           center={DEFAULT_CENTER}
           zoom={4}
           options={mapOverviewOptions()}
@@ -216,11 +216,9 @@ export function SitesOverviewMap({ sites }: SitesOverviewMapProps) {
         </GoogleMap>
       </div>
       <p className='text-xs text-muted-foreground'>
-        {pins.length === 1
-          ? 'Click the pin or site name to open the site.'
-          : 'Map is zoomed to fit all pinned sites. Click a pin or its label to open that site.'}
+        Click the pin or site name to open the site.
         {withoutCoords > 0
-          ? ` ${withoutCoords} site${withoutCoords === 1 ? ' has' : 's have'} no coordinates and ${withoutCoords === 1 ? 'is' : 'are'} not shown.`
+          ? `| ${withoutCoords} site${withoutCoords === 1 ? ' has' : 's have'} no coordinates and ${withoutCoords === 1 ? 'is' : 'are'} not shown.`
           : null}
       </p>
     </div>
