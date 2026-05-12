@@ -56,17 +56,17 @@
 // ============================================================
 // CONFIGURATION — edit these values
 // ============================================================
-const char* ssid       = "YOUR_WIFI_SSID";
-const char* password   = "YOUR_WIFI_PASSWORD";
-const char* apiBaseUrl = "https://api.underdog.pocketsized.ca/ingest";
-const char* deviceId   = "device-123";
-const char* apiKey     = "YOUR_PLAINTEXT_API_KEY";
+const char *ssid = "YOUR_WIFI_SSID";
+const char *password = "YOUR_WIFI_PASSWORD";
+const char *apiBaseUrl = "";
+const char *deviceId = "device-123";
+const char *apiKey = "YOUR_PLAINTEXT_API_KEY";
 
 // How often to post (ms). Keep >= 5000.
-const unsigned long POST_INTERVAL_MS  = 15000;
+const unsigned long POST_INTERVAL_MS = 15000;
 
 // Backlight off after this many ms of no touch
-const unsigned long SLEEP_TIMEOUT_MS  = 30000;
+const unsigned long SLEEP_TIMEOUT_MS = 30000;
 // ============================================================
 
 // ── Backlight ─────────────────────────────────────────────────────────────
@@ -76,17 +76,17 @@ const unsigned long SLEEP_TIMEOUT_MS  = 30000;
 // If the screen stays black, open Serial Monitor: you will see "BL blink" and
 // the backlight will pulse 3 times. If it never lights up, your board may
 // need a different GPIO or the User_Setup.h still has TFT_BL defined (remove it).
-#define BL_PIN      21
-#define BL_CHANNEL   0   // LEDC channel
-#define BL_FREQ   5000   // Hz
-#define BL_BITS      8   // 8-bit resolution (0-255)
+#define BL_PIN 21
+#define BL_CHANNEL 0 // LEDC channel
+#define BL_FREQ 5000 // Hz
+#define BL_BITS 8    // 8-bit resolution (0-255)
 
 // ── Touch — HSPI bus (separate from TFT's VSPI) ───────────────────────────
-#define TOUCH_SCLK  25
-#define TOUCH_MISO  39   // input-only GPIO on ESP32; fine for MISO
-#define TOUCH_MOSI  32
-#define TOUCH_CS    33
-#define TOUCH_IRQ   36   // input-only GPIO
+#define TOUCH_SCLK 25
+#define TOUCH_MISO 39 // input-only GPIO on ESP32; fine for MISO
+#define TOUCH_MOSI 32
+#define TOUCH_CS 33
+#define TOUCH_IRQ 36 // input-only GPIO
 
 SPIClass touchSPI(HSPI);
 XPT2046_Touchscreen ts(TOUCH_CS, TOUCH_IRQ);
@@ -100,9 +100,9 @@ const int SCREEN_H = 240;
 
 // Large toggle button — centred in the middle third
 const int BTN_W = 220;
-const int BTN_H =  66;
-const int BTN_X = (SCREEN_W - BTN_W) / 2;   // 50
-const int BTN_Y =  80;
+const int BTN_H = 66;
+const int BTN_X = (SCREEN_W - BTN_W) / 2; // 50
+const int BTN_Y = 80;
 
 // ── Touch calibration (raw ADC → screen pixels, landscape) ────────────────
 // Adjust if taps feel misaligned on your specific unit.
@@ -110,29 +110,30 @@ const int T_X_MIN = 200, T_X_MAX = 3800;
 const int T_Y_MIN = 200, T_Y_MAX = 3800;
 
 // ── Colors ────────────────────────────────────────────────────────────────
-#define C_BG       TFT_BLACK
-#define C_PANEL    0x1082   // very dark grey
-#define C_ACCENT   0x055F   // dark teal for header
-#define C_GREEN    0x2724   // muted green
-#define C_RED      0xA000   // muted red
-#define C_WHITE    TFT_WHITE
-#define C_LTGREY   0x8C51
-#define C_DKGREY   0x4208
+#define C_BG TFT_BLACK
+#define C_PANEL 0x1082  // very dark grey
+#define C_ACCENT 0x055F // dark teal for header
+#define C_GREEN 0x2724  // muted green
+#define C_RED 0xA000    // muted red
+#define C_WHITE TFT_WHITE
+#define C_LTGREY 0x8C51
+#define C_DKGREY 0x4208
 
 // ── Runtime state ─────────────────────────────────────────────────────────
-bool           sendNormal    = true;
-bool           displayAwake  = true;
-unsigned long  lastTouchMs   = 0;
-unsigned long  lastPostMs    = 0;
-bool           lastPostOk    = false;
-String         lastPostTime  = "--:--:--";
-int            postCount     = 0;
+bool sendNormal = true;
+bool displayAwake = true;
+unsigned long lastTouchMs = 0;
+unsigned long lastPostMs = 0;
+bool lastPostOk = false;
+String lastPostTime = "--:--:--";
+int postCount = 0;
 
 // =============================================================
 // Drawing
 // =============================================================
 
-void drawStatusBar() {
+void drawStatusBar()
+{
   tft.fillRect(0, 0, SCREEN_W, 32, C_ACCENT);
   tft.setTextColor(C_WHITE, C_ACCENT);
   tft.drawString("Underdog Dummy Node", 10, 9, 2);
@@ -143,9 +144,10 @@ void drawStatusBar() {
   tft.fillCircle(SCREEN_W - 16, 16, 7, dot);
 }
 
-void drawToggleButton() {
-  uint16_t col  = sendNormal ? C_GREEN : C_RED;
-  uint16_t bord = sendNormal ? 0x07E0  : 0xF800;
+void drawToggleButton()
+{
+  uint16_t col = sendNormal ? C_GREEN : C_RED;
+  uint16_t bord = sendNormal ? 0x07E0 : 0xF800;
 
   tft.fillRoundRect(BTN_X, BTN_Y, BTN_W, BTN_H, 12, col);
   tft.drawRoundRect(BTN_X, BTN_Y, BTN_W, BTN_H, 12, bord);
@@ -153,16 +155,20 @@ void drawToggleButton() {
 
   tft.setTextColor(C_WHITE, col);
   int cx = BTN_X + BTN_W / 2;
-  if (sendNormal) {
-    tft.drawCentreString("HEALTHY DATA",       cx, BTN_Y + 12, 2);
-    tft.drawCentreString("tap to send BAD",    cx, BTN_Y + 38, 1);
-  } else {
-    tft.drawCentreString("UNHEALTHY DATA",     cx, BTN_Y + 12, 2);
-    tft.drawCentreString("tap to send GOOD",   cx, BTN_Y + 38, 1);
+  if (sendNormal)
+  {
+    tft.drawCentreString("HEALTHY DATA", cx, BTN_Y + 12, 2);
+    tft.drawCentreString("tap to send BAD", cx, BTN_Y + 38, 1);
+  }
+  else
+  {
+    tft.drawCentreString("UNHEALTHY DATA", cx, BTN_Y + 12, 2);
+    tft.drawCentreString("tap to send GOOD", cx, BTN_Y + 38, 1);
   }
 }
 
-void drawStats() {
+void drawStats()
+{
   int y0 = BTN_Y + BTN_H + 14;
   tft.fillRect(0, y0, SCREEN_W, SCREEN_H - y0, C_BG);
 
@@ -192,7 +198,8 @@ void drawStats() {
   tft.drawString(ip, 42, y0 + 48, 2);
 }
 
-void drawFullScreen() {
+void drawFullScreen()
+{
   tft.fillScreen(C_BG);
   drawStatusBar();
   drawToggleButton();
@@ -203,12 +210,14 @@ void drawFullScreen() {
 // Backlight / sleep
 // =============================================================
 
-void setBacklight(bool on) {
+void setBacklight(bool on)
+{
   ledcWrite(BL_CHANNEL, on ? 255 : 0);
   displayAwake = on;
 }
 
-void wakeDisplay() {
+void wakeDisplay()
+{
   setBacklight(true);
   drawFullScreen();
   lastTouchMs = millis();
@@ -218,8 +227,10 @@ void wakeDisplay() {
 // Touch helpers
 // =============================================================
 
-bool readTouch(int &px, int &py) {
-  if (!ts.touched()) return false;
+bool readTouch(int &px, int &py)
+{
+  if (!ts.touched())
+    return false;
   TS_Point p = ts.getPoint();
 
   // Landscape: raw X → screen Y, raw Y → screen X (for rotation 1)
@@ -230,7 +241,8 @@ bool readTouch(int &px, int &py) {
   return true;
 }
 
-bool insideButton(int px, int py) {
+bool insideButton(int px, int py)
+{
   return px >= BTN_X && px <= BTN_X + BTN_W &&
          py >= BTN_Y && py <= BTN_Y + BTN_H;
 }
@@ -239,7 +251,8 @@ bool insideButton(int px, int py) {
 // Time helpers
 // =============================================================
 
-String iso8601Now() {
+String iso8601Now()
+{
   time_t t = time(nullptr);
   struct tm ti;
   gmtime_r(&t, &ti);
@@ -248,7 +261,8 @@ String iso8601Now() {
   return String(buf);
 }
 
-String shortTimeNow() {
+String shortTimeNow()
+{
   time_t t = time(nullptr);
   struct tm ti;
   localtime_r(&t, &ti);
@@ -261,56 +275,66 @@ String shortTimeNow() {
 // API posting
 // =============================================================
 
-void postData() {
+void postData()
+{
   Serial.println("[POST] Building payload…");
 
   float temp, ph, wl, dox;
-  if (sendNormal) {
+  if (sendNormal)
+  {
     temp = 20.0f + random(0, 100) / 10.0f;
-    ph   =  6.5f + random(0,  20) / 10.0f;
-    wl   = 70.0f + random(0,  30);
-    dox  =  5.0f + random(0,  30) / 10.0f;
-  } else {
-    temp = 35.0f + random(0,  50) / 10.0f;
-    ph   =  4.0f + random(0,  10) / 10.0f;
-    wl   = 40.0f + random(0,  10);
-    dox  =  2.0f + random(0,  10) / 10.0f;
+    ph = 6.5f + random(0, 20) / 10.0f;
+    wl = 70.0f + random(0, 30);
+    dox = 5.0f + random(0, 30) / 10.0f;
+  }
+  else
+  {
+    temp = 35.0f + random(0, 50) / 10.0f;
+    ph = 4.0f + random(0, 10) / 10.0f;
+    wl = 40.0f + random(0, 10);
+    dox = 2.0f + random(0, 10) / 10.0f;
   }
 
   String ts_str = iso8601Now();
-  String body   = "{";
-  body += "\"deviceId\":\""    + String(deviceId) + "\",";
-  body += "\"timestamp\":\""   + ts_str           + "\",";
+  String body = "{";
+  body += "\"deviceId\":\"" + String(deviceId) + "\",";
+  body += "\"timestamp\":\"" + ts_str + "\",";
   body += "\"readings\":{";
-  body += "\"temperature\":"     + String(temp, 2) + ",";
-  body += "\"ph\":"              + String(ph,   2) + ",";
-  body += "\"waterLevel\":"      + String(wl,   2) + ",";
-  body += "\"dissolvedOxygen\":" + String(dox,  2);
+  body += "\"temperature\":" + String(temp, 2) + ",";
+  body += "\"ph\":" + String(ph, 2) + ",";
+  body += "\"waterLevel\":" + String(wl, 2) + ",";
+  body += "\"dissolvedOxygen\":" + String(dox, 2);
   body += "}}";
 
   Serial.println("[POST] " + body);
 
   bool ok = false;
 
-  if (WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED)
+  {
     Serial.println("[POST] Skipped — no WiFi");
-  } else {
+  }
+  else
+  {
     WiFiClientSecure client;
     client.setInsecure();
     HTTPClient http;
-    if (http.begin(client, apiBaseUrl)) {
+    if (http.begin(client, apiBaseUrl))
+    {
       http.addHeader("Content-Type", "application/json");
       http.addHeader("x-api-key", apiKey);
       int code = http.POST(body);
       ok = (code >= 200 && code < 300);
       Serial.printf("[POST] HTTP %d  %s\n", code, http.getString().c_str());
       http.end();
-    } else {
+    }
+    else
+    {
       Serial.println("[POST] http.begin() failed");
     }
   }
 
-  lastPostOk   = ok;
+  lastPostOk = ok;
   lastPostTime = shortTimeNow();
   postCount++;
   drawStats();
@@ -320,7 +344,8 @@ void postData() {
 // Setup
 // =============================================================
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   delay(200);
   Serial.println("\n\n=== CYD Dummy Node booting ===");
@@ -330,7 +355,8 @@ void setup() {
   ledcSetup(BL_CHANNEL, BL_FREQ, BL_BITS);
   ledcAttachPin(BL_PIN, BL_CHANNEL);
   // Blink 3 times so you can confirm the backlight circuit is responding
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++)
+  {
     Serial.printf("[INIT] BL blink %d ON\n", i + 1);
     ledcWrite(BL_CHANNEL, 255);
     delay(300);
@@ -345,15 +371,15 @@ void setup() {
   // ── TFT init (VSPI, configured in User_Setup.h) ─────────────────────────
   Serial.println("[INIT] TFT…");
   tft.init();
-  tft.setRotation(1);   // landscape, USB port on right
+  tft.setRotation(1); // landscape, USB port on right
   tft.fillScreen(TFT_BLACK);
   Serial.println("[INIT] TFT OK");
 
   // Splash so you know the screen works before any network activity
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawCentreString("Underdog Dummy Node", SCREEN_W / 2, 90,  4);
-  tft.setTextColor(0x7BEF,   TFT_BLACK);
-  tft.drawCentreString("Starting up...",      SCREEN_W / 2, 140, 2);
+  tft.drawCentreString("Underdog Dummy Node", SCREEN_W / 2, 90, 4);
+  tft.setTextColor(0x7BEF, TFT_BLACK);
+  tft.drawCentreString("Starting up...", SCREEN_W / 2, 140, 2);
 
   // ── Touch init (HSPI — separate bus!) ───────────────────────────────────
   Serial.println("[INIT] Touch SPI (HSPI)…");
@@ -370,15 +396,19 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   unsigned long t0 = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000) {
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000)
+  {
     delay(400);
     Serial.print(".");
   }
   Serial.println();
 
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED)
+  {
     Serial.println("[INIT] WiFi connected: " + WiFi.localIP().toString());
-  } else {
+  }
+  else
+  {
     Serial.println("[INIT] WiFi timeout — running offline");
   }
 
@@ -387,7 +417,8 @@ void setup() {
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
   time_t now = time(nullptr);
   t0 = millis();
-  while (now < 1577836800 && millis() - t0 < 10000) {
+  while (now < 1577836800 && millis() - t0 < 10000)
+  {
     delay(400);
     now = time(nullptr);
   }
@@ -409,42 +440,51 @@ void setup() {
 // Loop
 // =============================================================
 
-void loop() {
+void loop()
+{
   unsigned long now = millis();
 
   // ── Touch ────────────────────────────────────────────────────────────────
   int px, py;
-  if (readTouch(px, py)) {
-    if (!displayAwake) {
+  if (readTouch(px, py))
+  {
+    if (!displayAwake)
+    {
       wakeDisplay();
-      delay(250);  // absorb the wake tap
-    } else {
+      delay(250); // absorb the wake tap
+    }
+    else
+    {
       lastTouchMs = now;
-      if (insideButton(px, py)) {
+      if (insideButton(px, py))
+      {
         sendNormal = !sendNormal;
         Serial.printf("[TOUCH] Mode → %s\n", sendNormal ? "HEALTHY" : "UNHEALTHY");
         drawToggleButton();
         drawStats();
-        delay(200);  // debounce
+        delay(200); // debounce
       }
     }
   }
 
   // ── Sleep ─────────────────────────────────────────────────────────────────
-  if (displayAwake && now - lastTouchMs >= SLEEP_TIMEOUT_MS) {
+  if (displayAwake && now - lastTouchMs >= SLEEP_TIMEOUT_MS)
+  {
     Serial.println("[SLEEP] Backlight off");
     setBacklight(false);
   }
 
   // ── Periodic WiFi dot refresh ─────────────────────────────────────────────
   static unsigned long lastDotRefresh = 0;
-  if (displayAwake && now - lastDotRefresh >= 5000) {
+  if (displayAwake && now - lastDotRefresh >= 5000)
+  {
     lastDotRefresh = now;
     drawStatusBar();
   }
 
   // ── Post data ─────────────────────────────────────────────────────────────
-  if (now - lastPostMs >= POST_INTERVAL_MS) {
+  if (now - lastPostMs >= POST_INTERVAL_MS)
+  {
     lastPostMs = now;
     postData();
   }
