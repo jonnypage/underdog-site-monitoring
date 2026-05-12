@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@apollo/client";
 import { ChevronDown, X } from "lucide-react";
 import { SensorIcon } from "@/components/sensor-icon";
 import { StatusPill } from "@/components/status-pill";
-import { ResolveAlertDocument } from "@/lib/gql/generated/graphql";
+import { useResolveAlert } from "@/lib/useAPI";
 import { cn } from "@/lib/utils";
 
 export interface AlertListItem {
@@ -104,7 +103,7 @@ function AlertAccordionRow({
 }) {
   const [open, setOpen] = useState(false);
   const [dismissing, setDismissing] = useState(false);
-  const [resolveAlert] = useMutation(ResolveAlertDocument);
+  const [resolveAlert] = useResolveAlert();
 
   const canDismiss = alert.status === "active";
 

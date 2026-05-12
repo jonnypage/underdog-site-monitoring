@@ -1,14 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useQuery } from '@apollo/client';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  AdminSitesDocument,
-  AdminUsersDocument,
-} from '@/lib/gql/generated/graphql';
+import { useAdminSites, useAdminUsers } from '@/lib/useAPI';
 import { roleDisplayName } from '@/lib/role-display-name';
 import { LoadingMessage } from '@/components/ui/spinner';
 
@@ -24,9 +20,8 @@ export function AdminDashboardUsers() {
     data: usersData,
     loading: usersLoading,
     error: usersError,
-  } = useQuery(AdminUsersDocument);
-  const { data: sitesData, loading: sitesLoading } =
-    useQuery(AdminSitesDocument);
+  } = useAdminUsers();
+  const { data: sitesData, loading: sitesLoading } = useAdminSites();
 
   const users = usersData?.adminUsers ?? [];
   const sites = sitesData?.adminSites ?? [];

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "@apollo/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,11 +10,11 @@ import { Select } from "@/components/ui/select";
 import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
 import {
-  AdminDeviceDocument,
-  GetSiteDocument,
-  RotateAdminDeviceApiKeyDocument,
-  UpdateAdminDeviceDocument
-} from "@/lib/gql/generated/graphql";
+  useAdminDevice,
+  useGetSite,
+  useRotateAdminDeviceApiKey,
+  useUpdateAdminDevice,
+} from "@/lib/useAPI";
 import {
   BOARDS,
   defaultDriverForSensor,
@@ -58,18 +57,16 @@ export function DeviceInstallWizard({
   deviceUuid: string;
   apiBaseUrl: string;
 }) {
-  const { data, loading, error: deviceErr } = useQuery(AdminDeviceDocument, {
-    variables: { id: deviceUuid }
-  });
+  const { data, loading, error: deviceErr } = useAdminDevice({ id: deviceUuid });
   const device = data?.adminDevice;
 
-  const { data: siteData, loading: siteLoading } = useQuery(GetSiteDocument, {
-    variables: { id: device?.siteId ?? "" },
-    skip: !device?.siteId
-  });
+  const { data: siteData, loading: siteLoading } = useGetSite(
+    { id: device?.siteId ?? "" },
+    { skip: !device?.siteId }
+  );
 
-  const [rotateKey, { loading: rotating }] = useMutation(RotateAdminDeviceApiKeyDocument);
-  const [updateDevice] = useMutation(UpdateAdminDeviceDocument);
+  const [rotateKey, { loading: rotating }] = useRotateAdminDeviceApiKey();
+  const [updateDevice] = useUpdateAdminDevice();
 
   const board: BoardDefinition | undefined = useMemo(() => {
     const id = device?.board ?? "wemos_d1_mini";

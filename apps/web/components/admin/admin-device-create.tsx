@@ -3,18 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "@apollo/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { BOARDS } from "@/lib/firmware/boards";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
-import {
-  AdminDevicesDocument,
-  AdminSitesDocument,
-  CreateAdminDeviceDocument
-} from "@/lib/gql/generated/graphql";
+import { useAdminSites, useCreateAdminDevice } from "@/lib/useAPI";
+import { AdminDevicesDocument } from "@/lib/gql/generated/graphql";
 import { Spinner } from "@/components/ui/spinner";
 
 function suggestDeviceId(siteName: string | undefined, hint: string) {
@@ -24,8 +20,8 @@ function suggestDeviceId(siteName: string | undefined, hint: string) {
 
 export function AdminDeviceCreate() {
   const router = useRouter();
-  const { data: sitesData, loading: sitesLoading } = useQuery(AdminSitesDocument);
-  const [createDevice, { loading: creating }] = useMutation(CreateAdminDeviceDocument);
+  const { data: sitesData, loading: sitesLoading } = useAdminSites();
+  const [createDevice, { loading: creating }] = useCreateAdminDevice();
 
   const sites = sitesData?.adminSites ?? [];
   const enabledBoards = BOARDS.filter((b) => !b.comingSoon);

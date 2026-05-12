@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useQuery } from '@apollo/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AdminSitesDocument } from '@/lib/gql/generated/graphql';
+import { useAdminSites } from '@/lib/useAPI';
 import { LoadingMessage } from '@/components/ui/spinner';
 
 export function AdminDashboardSensorCatalog() {
@@ -12,7 +11,7 @@ export function AdminDashboardSensorCatalog() {
     data: sitesData,
     loading: sitesLoading,
     error: sitesError,
-  } = useQuery(AdminSitesDocument);
+  } = useAdminSites();
   const sensorCatalog = sitesData?.sensorCatalog ?? [];
 
   return (

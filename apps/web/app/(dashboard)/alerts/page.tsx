@@ -1,24 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@apollo/client";
 import { AlertList } from "@/components/alerts/alert-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { GetAlertsDocument } from "@/lib/gql/generated/graphql";
+import { useGetAlerts } from "@/lib/useAPI";
 import { LoadingMessage } from "@/components/ui/spinner";
 
 export default function AlertsPage() {
   const [siteId, setSiteId] = useState("");
   const [type, setType] = useState("");
   const [status, setStatus] = useState("");
-  const { data, loading, error } = useQuery(GetAlertsDocument, {
-    variables: {
-      siteId: siteId || null,
-      type: type || null,
-      status: status || null
-    }
+  const { data, loading, error } = useGetAlerts({
+    siteId: siteId || null,
+    type: type || null,
+    status: status || null,
   });
 
   return (

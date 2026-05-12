@@ -1,13 +1,12 @@
 "use client";
 
-import { useMutation, useQuery } from "@apollo/client";
 import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LoadingMessage, Spinner } from "@/components/ui/spinner";
-import { GetMeDocument, UpdateMeDocument } from "@/lib/gql/generated/graphql";
+import { useGetMe, useUpdateMe } from "@/lib/useAPI";
 import { roleDisplayName } from "@/lib/role-display-name";
 
 function apolloErrorMessage(err: unknown): string {
@@ -22,8 +21,8 @@ function apolloErrorMessage(err: unknown): string {
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 export default function SettingsPage() {
-  const { data, loading, error } = useQuery(GetMeDocument);
-  const [updateMe, { loading: saving }] = useMutation(UpdateMeDocument);
+  const { data, loading, error } = useGetMe();
+  const [updateMe, { loading: saving }] = useUpdateMe();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");

@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { useQuery } from "@apollo/client";
 import { AlertList } from "@/components/alerts/alert-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
-import { GetAlertsDocument, GetSiteDocument } from "@/lib/gql/generated/graphql";
+import { useGetSite, useGetAlerts } from "@/lib/useAPI";
 import { LoadingMessage } from "@/components/ui/spinner";
 import { ChevronLeft } from "lucide-react";
 
@@ -18,10 +17,8 @@ export default function SiteAlertsPage() {
 
   const [statusFilter, setStatusFilter] = useState<string>("");
 
-  const siteQuery = useQuery(GetSiteDocument, { variables: { id: siteId } });
-  const alertsQuery = useQuery(GetAlertsDocument, {
-    variables: { siteId, status: statusFilter || null },
-  });
+  const siteQuery = useGetSite({ id: siteId });
+  const alertsQuery = useGetAlerts({ siteId, status: statusFilter || null });
 
   const siteName = siteQuery.data?.getSite?.name ?? "Site";
   const alerts = alertsQuery.data?.getAlerts ?? [];

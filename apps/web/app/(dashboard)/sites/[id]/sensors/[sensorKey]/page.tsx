@@ -3,13 +3,13 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@apollo/client";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoricalLineChart } from "@/components/charts/historical-line-chart";
 import { SensorIcon } from "@/components/sensor-icon";
-import { GetSiteDocument, GetSensorMeasurementsDocument, TimeRange as GqlTimeRange } from "@/lib/gql/generated/graphql";
+import { useGetSite, useGetSensorMeasurements } from "@/lib/useAPI";
+import { TimeRange as GqlTimeRange } from "@/lib/gql/generated/graphql";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function SensorHistoricalPage() {
@@ -19,10 +19,8 @@ export default function SensorHistoricalPage() {
 
   const [range, setRange] = useState<GqlTimeRange>(GqlTimeRange.Last_7D);
 
-  const siteQuery = useQuery(GetSiteDocument, { variables: { id: siteId } });
-  const measurementsQuery = useQuery(GetSensorMeasurementsDocument, { 
-    variables: { siteId, sensorKey, range } 
-  });
+  const siteQuery = useGetSite({ id: siteId });
+  const measurementsQuery = useGetSensorMeasurements({ siteId, sensorKey, range });
 
   const site = siteQuery.data?.getSite;
   const sensorInfo = site?.sensorReporting.find(r => r.key === sensorKey);

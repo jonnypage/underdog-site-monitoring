@@ -2,22 +2,17 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useMutation, useQuery } from "@apollo/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
 import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { AlertCircle } from "lucide-react";
-import {
-  AdminDevicesDocument,
-  DeleteAdminDeviceDocument,
-  RotateAdminDeviceApiKeyDocument
-} from "@/lib/gql/generated/graphql";
+import { useAdminDevices, useRotateAdminDeviceApiKey, useDeleteAdminDevice } from "@/lib/useAPI";
 
 export function AdminDevicesList({ overview = false }: { overview?: boolean }) {
-  const { data, loading, error, refetch } = useQuery(AdminDevicesDocument);
-  const [rotateKey, { loading: rotating }] = useMutation(RotateAdminDeviceApiKeyDocument);
-  const [deleteDevice, { loading: deleting }] = useMutation(DeleteAdminDeviceDocument);
+  const { data, loading, error, refetch } = useAdminDevices();
+  const [rotateKey, { loading: rotating }] = useRotateAdminDeviceApiKey();
+  const [deleteDevice, { loading: deleting }] = useDeleteAdminDevice();
   const [actionError, setActionError] = useState<string | null>(null);
   const [rotatedKey, setRotatedKey] = useState<{ id: string; key: string } | null>(null);
   const [deviceToDelete, setDeviceToDelete] = useState<{ id: string; name: string } | null>(null);

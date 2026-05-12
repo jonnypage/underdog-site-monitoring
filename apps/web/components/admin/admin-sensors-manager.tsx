@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQuery } from "@apollo/client";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import * as LucideIcons from "lucide-react";
@@ -10,11 +9,11 @@ import { Input } from "@/components/ui/input";
 import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
 import {
-  AdminSensorCatalogListDocument,
-  CreateSensorCatalogEntryDocument,
-  DeleteSensorCatalogEntryDocument,
-  UpdateSensorCatalogEntryDocument
-} from "@/lib/gql/generated/graphql";
+  useAdminSensorCatalogList,
+  useCreateSensorCatalogEntry,
+  useDeleteSensorCatalogEntry,
+  useUpdateSensorCatalogEntry,
+} from "@/lib/useAPI";
 
 // ── Lucide icon resolver ───────────────────────────────────────────────────
 // Icons are PascalCase in the library (e.g. "Thermometer", "Droplets").
@@ -84,10 +83,10 @@ function parseOptionalSortOrder(raw: string): number | undefined {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function AdminSensorsManager() {
-  const { data, loading, error, refetch } = useQuery(AdminSensorCatalogListDocument);
-  const [createEntry, { loading: creating }] = useMutation(CreateSensorCatalogEntryDocument);
-  const [updateEntry, { loading: updating }] = useMutation(UpdateSensorCatalogEntryDocument);
-  const [deleteEntry, { loading: deleting }] = useMutation(DeleteSensorCatalogEntryDocument);
+  const { data, loading, error, refetch } = useAdminSensorCatalogList();
+  const [createEntry, { loading: creating }] = useCreateSensorCatalogEntry();
+  const [updateEntry, { loading: updating }] = useUpdateSensorCatalogEntry();
+  const [deleteEntry, { loading: deleting }] = useDeleteSensorCatalogEntry();
 
   const rows = data?.sensorCatalog ?? [];
 

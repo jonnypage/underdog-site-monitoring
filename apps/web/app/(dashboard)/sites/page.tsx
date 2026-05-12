@@ -1,19 +1,18 @@
 "use client";
 
-import { useQuery } from "@apollo/client";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { SitesOverviewMap } from "@/components/sites/sites-overview-map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteStatusBadge } from "@/components/site-status-badge";
-import { GetSitesDocument } from "@/lib/gql/generated/graphql";
+import { useGetSites } from "@/lib/useAPI";
 import { Spinner } from "@/components/ui/spinner";
 
 export default function SitesPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [pendingSiteId, setPendingSiteId] = useState<string | null>(null);
-  const { data, loading, error } = useQuery(GetSitesDocument);
+  const { data, loading, error } = useGetSites();
   const sites = data?.getSites ?? [];
 
   return (

@@ -1,6 +1,5 @@
 'use client';
 
-import { useMutation, useQuery } from '@apollo/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -12,13 +11,12 @@ import { AdminSiteFormSensorRow } from '@/components/admin/admin-site-form-senso
 import { LoadingMessage, Spinner } from '@/components/ui/spinner';
 import { apolloErrorMessage } from '@/lib/apollo-error-message';
 import {
-  AdminSitesDocument,
-  CreateAdminSiteDocument,
-  GetSiteDocument,
-  GetSitesDocument,
-  UpdateAdminSiteDocument,
-  AdminDevicesDocument,
-} from '@/lib/gql/generated/graphql';
+  useAdminSites,
+  useAdminDevices,
+  useCreateAdminSite,
+  useUpdateAdminSite,
+} from '@/lib/useAPI';
+import { AdminDevicesDocument, AdminSitesDocument, GetSiteDocument, GetSitesDocument } from '@/lib/gql/generated/graphql';
 
 type Mode = 'create' | 'edit';
 
@@ -34,19 +32,13 @@ export function AdminSiteForm({
   siteId?: string;
 }) {
   const router = useRouter();
-  const { data: sitesData, loading: sitesLoading } =
-    useQuery(AdminSitesDocument);
-  const [createSite, { loading: creatingSite }] = useMutation(
-    CreateAdminSiteDocument,
-  );
-  const [updateSite, { loading: updatingSite }] = useMutation(
-    UpdateAdminSiteDocument,
-  );
+  const { data: sitesData, loading: sitesLoading } = useAdminSites();
+  const [createSite, { loading: creatingSite }] = useCreateAdminSite();
+  const [updateSite, { loading: updatingSite }] = useUpdateAdminSite();
 
   const catalog = sitesData?.sensorCatalog ?? [];
   const sites = sitesData?.adminSites ?? [];
-  const { data: devicesData, loading: devicesLoading } =
-    useQuery(AdminDevicesDocument);
+  const { data: devicesData, loading: devicesLoading } = useAdminDevices();
   const allDevices = devicesData?.adminDevices ?? [];
   const existing =
     mode === 'edit' && siteId ? sites.find((s) => s.id === siteId) : undefined;

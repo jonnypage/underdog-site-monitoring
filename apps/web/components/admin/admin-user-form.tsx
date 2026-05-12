@@ -1,6 +1,5 @@
 "use client";
 
-import { useMutation, useQuery } from "@apollo/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -12,12 +11,13 @@ import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
 import { roleDisplayName } from "@/lib/role-display-name";
 import {
-  AdminSitesDocument,
-  AdminUsersDocument,
-  CreateAdminUserDocument,
-  ResetAdminUserPasswordDocument,
-  UpdateAdminUserDocument
-} from "@/lib/gql/generated/graphql";
+  useAdminSites,
+  useAdminUsers,
+  useCreateAdminUser,
+  useResetAdminUserPassword,
+  useUpdateAdminUser,
+} from "@/lib/useAPI";
+import { AdminUsersDocument } from "@/lib/gql/generated/graphql";
 
 const ROLES = ["admin", "site_manager", "site_viewer"] as const;
 
@@ -25,11 +25,11 @@ type Mode = "create" | "edit";
 
 export function AdminUserForm({ mode, userId }: { mode: Mode; userId?: string }) {
   const router = useRouter();
-  const { data: usersData, loading: usersLoading } = useQuery(AdminUsersDocument);
-  const { data: sitesData } = useQuery(AdminSitesDocument);
-  const [createUser, { loading: creatingUser }] = useMutation(CreateAdminUserDocument);
-  const [updateUser, { loading: updatingUser }] = useMutation(UpdateAdminUserDocument);
-  const [resetPassword, { loading: resettingPassword }] = useMutation(ResetAdminUserPasswordDocument);
+  const { data: usersData, loading: usersLoading } = useAdminUsers();
+  const { data: sitesData } = useAdminSites();
+  const [createUser, { loading: creatingUser }] = useCreateAdminUser();
+  const [updateUser, { loading: updatingUser }] = useUpdateAdminUser();
+  const [resetPassword, { loading: resettingPassword }] = useResetAdminUserPassword();
 
   const users = usersData?.adminUsers ?? [];
   const sites = sitesData?.adminSites ?? [];

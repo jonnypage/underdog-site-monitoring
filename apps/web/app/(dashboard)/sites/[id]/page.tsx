@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useQuery } from "@apollo/client";
 import { useSession } from "next-auth/react";
 import { AlertList } from "@/components/alerts/alert-list";
 import { SensorSparkline } from "@/components/charts/sensor-sparkline";
@@ -13,7 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteDetailSkeleton } from "@/components/sites/site-detail-skeleton";
 import { SiteLocationMap } from "@/components/sites/site-location-map";
 import { SiteSensorCard } from "@/components/sites/site-sensor-card";
-import { GetAlertsDocument, GetMeasurementsDocument, GetSiteDocument, TimeRange as GqlTimeRange } from "@/lib/gql/generated/graphql";
+import { useGetSite, useGetMeasurements, useGetAlerts } from "@/lib/useAPI";
+import { TimeRange as GqlTimeRange } from "@/lib/gql/generated/graphql";
 
 export default function SiteDetailPage() {
   const params = useParams<{ id: string }>();
@@ -21,9 +21,9 @@ export default function SiteDetailPage() {
   const { data: session, status: sessionStatus } = useSession();
   const isAdmin = sessionStatus === "authenticated" && session?.user?.role === "admin";
   const range = GqlTimeRange.Last_7D;
-  const siteQuery = useQuery(GetSiteDocument, { variables: { id: siteId } });
-  const measurementsQuery = useQuery(GetMeasurementsDocument, { variables: { siteId, range } });
-  const alertsQuery = useQuery(GetAlertsDocument, { variables: { siteId, status: "active" } });
+  const siteQuery = useGetSite({ id: siteId });
+  const measurementsQuery = useGetMeasurements({ siteId, range });
+  const alertsQuery = useGetAlerts({ siteId, status: "active" });
 
   const site = siteQuery.data?.getSite;
   const siteStillLoading = siteQuery.loading && !site;
