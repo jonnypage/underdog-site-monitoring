@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { SensorIcon } from "@/components/sensor-icon";
 import { StatusPill } from "@/components/status-pill";
+import { DangerIconButton } from "@/components/ui/danger-action";
 import { useResolveAlert } from "@/lib/useAPI";
 import { cn } from "@/lib/utils";
 
@@ -157,19 +158,13 @@ function AlertAccordionRow({
           </span>
         </button>
         {canDismiss && (
-          <button
-            type="button"
-            aria-label="Dismiss alert"
+          <DangerIconButton
             disabled={dismissing}
             onClick={handleDismiss}
-            className={cn(
-              "mr-3 shrink-0 rounded-full p-1 text-muted-foreground transition-colors",
-              "hover:bg-destructive/10 hover:text-destructive",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
+            className="mr-3"
           >
             <X className="h-3.5 w-3.5" />
-          </button>
+          </DangerIconButton>
         )}
       </div>
 

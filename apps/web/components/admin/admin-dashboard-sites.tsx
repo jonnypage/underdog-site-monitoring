@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { EditNavButton } from '@/components/ui/edit-nav-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminSites } from '@/lib/useAPI';
 import { LoadingMessage } from '@/components/ui/spinner';
@@ -43,9 +44,7 @@ export function AdminDashboardSites() {
                 >
                   <td className='py-3 pr-4 font-medium'>{s.name}</td>
                   <td className='py-3 pr-4 text-right'>
-                    <Button type='button' size='sm' variant='ghost' asChild>
-                      <Link href={`/admin/sites/${s.id}/edit`}>Edit</Link>
-                    </Button>
+                    <EditNavButton href={`/admin/sites/${s.id}/edit`} />
                   </td>
                 </tr>
               ))}

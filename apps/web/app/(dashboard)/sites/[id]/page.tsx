@@ -8,6 +8,7 @@ import { AlertList } from "@/components/alerts/alert-list";
 import { SensorSparkline } from "@/components/charts/sensor-sparkline";
 import { SiteStatusBadge } from "@/components/site-status-badge";
 import { Button } from "@/components/ui/button";
+import { EditNavButton } from "@/components/ui/edit-nav-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteDetailSkeleton } from "@/components/sites/site-detail-skeleton";
 import { SiteLocationMap } from "@/components/sites/site-location-map";
@@ -70,9 +71,9 @@ export default function SiteDetailPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isAdmin ? (
-            <Button type="button" variant="outline" size="sm" asChild>
-              <Link href={`/admin/sites/${siteId}/edit`}>Edit site</Link>
-            </Button>
+            <EditNavButton href={`/admin/sites/${siteId}/edit`} variant="outline" size="sm">
+              Edit site
+            </EditNavButton>
           ) : null}
           {site?.status ? <SiteStatusBadge status={site.status} /> : null}
         </div>

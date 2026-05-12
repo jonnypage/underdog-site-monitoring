@@ -306,13 +306,14 @@ export async function createSensorCatalogEntry(
 
   const sites = await db.selectFrom("sites").select("id").execute();
   if (sites.length > 0) {
+    // One row per site so the key appears in admin site forms; sites opt in via `enabled`.
     await db
       .insertInto("site_sensor_catalog")
       .values(
         sites.map((s) => ({
           site_id: s.id,
           sensor_catalog_id: inserted.id,
-          enabled: true,
+          enabled: false,
           created_at: now,
           updated_at: now
         }))

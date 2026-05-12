@@ -5,6 +5,8 @@ import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { rotateApiKeyConfirmDescription, rotateApiKeyDialogLabels } from "@/components/ui/danger-action";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { LoadingMessage, Spinner } from "@/components/ui/spinner";
@@ -85,6 +87,7 @@ export function DeviceInstallWizard({
   const [error, setError] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const [manifestUrl, setManifestUrl] = useState<string | null>(null);
+  const [rotateKeyDialogOpen, setRotateKeyDialogOpen] = useState(false);
   const revokeRef = useRef<(() => void) | null>(null);
   const buttonRef = useRef<HTMLElement | null>(null);
 
@@ -183,13 +186,13 @@ export function DeviceInstallWizard({
     );
   }
 
-  async function onGenerateNewKey() {
+  async function performRotateApiKey() {
     setError(null);
-    if (!confirm("Rotate the API key now? The previous key stops working immediately.")) return;
     try {
       const r = await rotateKey({ variables: { id: deviceUuid } });
       const next = r.data?.rotateAdminDeviceApiKey;
       if (next) setApiKey(next);
+      setRotateKeyDialogOpen(false);
     } catch (err) {
       setError(apolloErrorMessage(err));
     }
@@ -381,7 +384,7 @@ export function DeviceInstallWizard({
                       placeholder="ud_…"
                       className="font-mono"
                     />
-                    <Button type="button" variant="outline" disabled={rotating} onClick={onGenerateNewKey} className="gap-2">
+                    <Button type="button" variant="outline" disabled={rotating} onClick={() => setRotateKeyDialogOpen(true)} className="gap-2">
                       {rotating ? (
                         <>
                           <Spinner size="md" />
@@ -511,6 +514,17 @@ export function DeviceInstallWizard({
           </Card>
         ) : null}
       </div>
+      <ConfirmDialog
+        open={rotateKeyDialogOpen}
+        onOpenChange={(open) => !open && setRotateKeyDialogOpen(false)}
+        {...rotateApiKeyDialogLabels()}
+        pending={rotating}
+        onConfirm={() => {
+          void performRotateApiKey();
+        }}
+      >
+        {rotateApiKeyConfirmDescription(device.name ?? device.deviceId)}
+      </ConfirmDialog>
     </>
   );
 }

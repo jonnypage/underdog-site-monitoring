@@ -57,7 +57,11 @@ export function AdminDashboardSensorCatalog() {
                     <td className='py-3 pr-4 text-muted-foreground'>
                       {r.sortOrder}
                     </td>
-                    <td className='py-3 pr-4 font-mono text-xs'>{r.key}</td>
+                    <td className='py-3 pr-4'>
+                      <span className='inline-block rounded-md bg-muted px-2 py-0.5 font-mono text-xs font-medium text-foreground'>
+                        {r.key}
+                      </span>
+                    </td>
                     <td className='py-3 pr-4 font-medium'>{r.displayName}</td>
                     <td className='py-3 pr-4'>{r.unit}</td>
                     <td className='py-3 pr-4 text-muted-foreground'>

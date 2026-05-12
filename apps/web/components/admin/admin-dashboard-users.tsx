@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { EditNavButton } from '@/components/ui/edit-nav-button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAdminSites, useAdminUsers } from '@/lib/useAPI';
 import { roleDisplayName } from '@/lib/role-display-name';
@@ -97,9 +98,7 @@ export function AdminDashboardUsers() {
                     )}
                   </td>
                   <td className='py-3 pr-4 text-right'>
-                    <Button type='button' size='sm' variant='ghost' asChild>
-                      <Link href={`/admin/users/${u.id}/edit`}>Edit</Link>
-                    </Button>
+                    <EditNavButton href={`/admin/users/${u.id}/edit`} />
                   </td>
                 </tr>
               ))}

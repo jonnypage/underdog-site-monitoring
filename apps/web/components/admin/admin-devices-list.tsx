@@ -4,8 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DangerActionButton,
+  deleteDeviceConfirmDescription,
+  destructiveCatalogDialogLabels,
+  rotateApiKeyConfirmDescription,
+  rotateApiKeyDialogLabels,
+} from "@/components/ui/danger-action";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
-import { LoadingMessage, Spinner } from "@/components/ui/spinner";
+import { LoadingMessage } from "@/components/ui/spinner";
 import { AlertCircle } from "lucide-react";
 import { useAdminDevices, useRotateAdminDeviceApiKey, useDeleteAdminDevice } from "@/lib/useAPI";
 
@@ -214,16 +222,11 @@ export function AdminDevicesList({ overview = false }: { overview?: boolean }) {
                           >
                             Rotate
                           </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                          className="hover:bg-destructive hover:text-destructive-foreground"
+                          <DangerActionButton
+                            intent="delete"
                             disabled={deleting}
                             onClick={() => setDeviceToDelete({ id: d.id, name: d.name ?? d.deviceId })}
-                          >
-                          Delete
-                        </Button>
+                          />
                         </div>
                       </>
                     )}
@@ -235,59 +238,32 @@ export function AdminDevicesList({ overview = false }: { overview?: boolean }) {
         )}
       </CardContent>
 
-      {deviceToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-xl animate-in zoom-in-95 duration-200">
-            <h2 className="text-lg font-semibold">Delete device</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to delete the device <strong>{deviceToDelete.name}</strong>? 
-              Past measurements will stay in the database, but the device can no longer post.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setDeviceToDelete(null)} disabled={deleting}>
-                Cancel
-              </Button>
-              <Button type="button" variant="default" className="gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:opacity-90" onClick={() => onDelete(deviceToDelete.id)} disabled={deleting}>
-                {deleting ? (
-                  <>
-                    <Spinner className="text-destructive-foreground" size="md" />
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deviceToDelete}
+        onOpenChange={(open) => !open && setDeviceToDelete(null)}
+        {...destructiveCatalogDialogLabels("device", "delete")}
+        confirmTone="destructive"
+        pending={deleting}
+        onConfirm={() => {
+          if (!deviceToDelete) return;
+          void onDelete(deviceToDelete.id);
+        }}
+      >
+        {deviceToDelete ? deleteDeviceConfirmDescription(deviceToDelete.name) : null}
+      </ConfirmDialog>
 
-      {deviceToRotate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-lg border border-border bg-background p-6 shadow-xl animate-in zoom-in-95 duration-200">
-            <h2 className="text-lg font-semibold">Rotate API key</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to rotate the API key for <strong>{deviceToRotate.name}</strong>? 
-              The previous key will stop working immediately and the device will need to be reflashed.
-            </p>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setDeviceToRotate(null)} disabled={rotating}>
-                Cancel
-              </Button>
-              <Button type="button" variant="default" onClick={() => onRotate(deviceToRotate.id)} disabled={rotating} className="gap-2">
-                {rotating ? (
-                  <>
-                    <Spinner className="text-primary-foreground" size="md" />
-                    Rotating...
-                  </>
-                ) : (
-                  "Rotate Key"
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deviceToRotate}
+        onOpenChange={(open) => !open && setDeviceToRotate(null)}
+        {...rotateApiKeyDialogLabels()}
+        pending={rotating}
+        onConfirm={() => {
+          if (!deviceToRotate) return;
+          void onRotate(deviceToRotate.id);
+        }}
+      >
+        {deviceToRotate ? rotateApiKeyConfirmDescription(deviceToRotate.name) : null}
+      </ConfirmDialog>
     </Card>
   );
 }
