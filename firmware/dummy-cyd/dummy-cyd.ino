@@ -8,31 +8,41 @@
  * - Any touch wakes the display.
  *
  * Hardware: ESP32-2432S028R (CYD)
- *   TFT:   ILI9341  (SPI, 320x240)
- *   Touch: XPT2046  (SPI, shared bus with TFT but different CS/IRQ)
+ *   TFT:   ILI9341  — VSPI bus  (MOSI=13, MISO=12, CLK=14, CS=15, DC=2)
+ *   Touch: XPT2046  — HSPI bus  (MOSI=32, MISO=39, CLK=25, CS=33, IRQ=36)
+ *   Backlight: GPIO 21, active-LOW (LOW = on, HIGH = off on most CYD boards)
  *
- * Required libraries (install via Arduino Library Manager):
- *   - TFT_eSPI         (Bodmer)  — configure for CYD, see User_Setup.h notes below
- *   - XPT2046_Touchscreen  (Paul Stoffregen)
+ * ── Required libraries (Arduino Library Manager) ──────────────────────────
+ *   TFT_eSPI          by Bodmer         (configure User_Setup.h — see below)
+ *   XPT2046_Touchscreen  by Paul Stoffregen
  *
- * TFT_eSPI User_Setup.h for CYD (place in TFT_eSPI library folder):
+ * ── TFT_eSPI User_Setup.h ─────────────────────────────────────────────────
+ * Open <Arduino libraries folder>/TFT_eSPI/User_Setup.h, comment out any
+ * existing driver #define, and add/replace with:
+ *
  *   #define ILI9341_DRIVER
  *   #define TFT_WIDTH  240
  *   #define TFT_HEIGHT 320
+ *   // VSPI pins for TFT
  *   #define TFT_MISO 12
  *   #define TFT_MOSI 13
  *   #define TFT_SCLK 14
  *   #define TFT_CS   15
  *   #define TFT_DC    2
  *   #define TFT_RST  -1
- *   #define TFT_BL   21   // backlight
- *   #define TFT_BACKLIGHT_ON HIGH
+ *   // Do NOT define TFT_BL here — we drive it manually (active-LOW)
  *   #define LOAD_GLCD
  *   #define LOAD_FONT2
  *   #define LOAD_FONT4
- *   #define SPI_FREQUENCY  55000000
+ *   #define SPI_FREQUENCY       55000000
  *   #define SPI_READ_FREQUENCY  20000000
- *   #define SPI_TOUCH_FREQUENCY  2500000
+ *
+ * ── Common causes of black screen ─────────────────────────────────────────
+ *   1. User_Setup.h not edited — TFT_eSPI ships pointing at a different board.
+ *   2. Backlight polarity — most CYDs need LOW to turn on the backlight.
+ *   3. Touch on wrong SPI bus — XPT2046 must use HSPI, not the default VSPI.
+ *   Open Serial Monitor at 115200 baud immediately after flashing; setup()
+ *   prints a breadcrumb for every stage so you can see where it hangs.
  */
 
 #include <WiFi.h>
@@ -43,118 +53,138 @@
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 
-// ==========================================
-// CONFIGURATION — edit these
-// ==========================================
+// ============================================================
+// CONFIGURATION — edit these values
+// ============================================================
 const char* ssid       = "YOUR_WIFI_SSID";
 const char* password   = "YOUR_WIFI_PASSWORD";
 const char* apiBaseUrl = "https://api.underdog.pocketsized.ca/ingest";
 const char* deviceId   = "device-123";
 const char* apiKey     = "YOUR_PLAINTEXT_API_KEY";
 
-// How often to post data (ms). Must be >= 5000 to avoid rate-limiting.
-const unsigned long POST_INTERVAL_MS = 15000;
+// How often to post (ms). Keep >= 5000.
+const unsigned long POST_INTERVAL_MS  = 15000;
 
-// Backlight sleep timeout (ms of no touch)
-const unsigned long SLEEP_TIMEOUT_MS = 30000;
-// ==========================================
+// Backlight off after this many ms of no touch
+const unsigned long SLEEP_TIMEOUT_MS  = 30000;
+// ============================================================
 
-// ── CYD Touch pins ─────────────────────────
-#define TOUCH_CS  33
-#define TOUCH_IRQ 36   // T_IRQ on CYD — INPUT only GPIO
+// ── Backlight ─────────────────────────────────────────────────────────────
+// Most CYD boards wire GPIO 21 through a P-channel MOSFET: LOW = ON.
+// If your backlight is backwards, flip these two defines.
+#define BL_PIN   21
+#define BL_ON    LOW
+#define BL_OFF   HIGH
 
-// ── Backlight pin ──────────────────────────
-#define TFT_BACKLIGHT_PIN 21
+// ── Touch — HSPI bus (separate from TFT's VSPI) ───────────────────────────
+#define TOUCH_SCLK  25
+#define TOUCH_MISO  39   // input-only GPIO on ESP32; fine for MISO
+#define TOUCH_MOSI  32
+#define TOUCH_CS    33
+#define TOUCH_IRQ   36   // input-only GPIO
 
-// ── Display / touch objects ────────────────
-TFT_eSPI tft = TFT_eSPI();
+SPIClass touchSPI(HSPI);
 XPT2046_Touchscreen ts(TOUCH_CS, TOUCH_IRQ);
 
-// ── State ──────────────────────────────────
-bool sendNormal       = true;   // toggled by touch button
-bool displayAwake     = true;
-unsigned long lastTouchMs  = 0;
-unsigned long lastPostMs   = 0;
-bool lastPostSuccess  = false;
-String lastPostTime   = "--:--";
-int postCount         = 0;
+// ── TFT (VSPI, pins set in User_Setup.h) ──────────────────────────────────
+TFT_eSPI tft = TFT_eSPI();
 
-// ── Touch calibration (raw → pixel) ────────
-// These are typical CYD values; adjust if touch feels off.
-// Portrait: x maps to TFT Y, y maps to TFT X (driver rotates)
-const int TOUCH_X_MIN = 200,  TOUCH_X_MAX = 3700;
-const int TOUCH_Y_MIN = 200,  TOUCH_Y_MAX = 3800;
-const int SCREEN_W    = 320,  SCREEN_H    = 240;
+// ── Layout ────────────────────────────────────────────────────────────────
+const int SCREEN_W = 320;
+const int SCREEN_H = 240;
 
-// Toggle button bounds (landscape)
-const int BTN_X = 60,  BTN_Y = 80, BTN_W = 200, BTN_H = 60;
+// Large toggle button — centred in the middle third
+const int BTN_W = 220;
+const int BTN_H =  66;
+const int BTN_X = (SCREEN_W - BTN_W) / 2;   // 50
+const int BTN_Y =  80;
 
-// ── Colors ─────────────────────────────────
-#define C_BG        TFT_BLACK
-#define C_ACCENT    0x04B5   // teal-ish
-#define C_GREEN     0x07E0
-#define C_RED       0xF800
-#define C_ORANGE    0xFD20
-#define C_WHITE     TFT_WHITE
-#define C_GREY      0x7BEF
-#define C_DARKGREY  0x39E7
+// ── Touch calibration (raw ADC → screen pixels, landscape) ────────────────
+// Adjust if taps feel misaligned on your specific unit.
+const int T_X_MIN = 200, T_X_MAX = 3800;
+const int T_Y_MIN = 200, T_Y_MAX = 3800;
 
-// ───────────────────────────────────────────
-// Screen drawing helpers
-// ───────────────────────────────────────────
+// ── Colors ────────────────────────────────────────────────────────────────
+#define C_BG       TFT_BLACK
+#define C_PANEL    0x1082   // very dark grey
+#define C_ACCENT   0x055F   // dark teal for header
+#define C_GREEN    0x2724   // muted green
+#define C_RED      0xA000   // muted red
+#define C_WHITE    TFT_WHITE
+#define C_LTGREY   0x8C51
+#define C_DKGREY   0x4208
+
+// ── Runtime state ─────────────────────────────────────────────────────────
+bool           sendNormal    = true;
+bool           displayAwake  = true;
+unsigned long  lastTouchMs   = 0;
+unsigned long  lastPostMs    = 0;
+bool           lastPostOk    = false;
+String         lastPostTime  = "--:--:--";
+int            postCount     = 0;
+
+// =============================================================
+// Drawing
+// =============================================================
 
 void drawStatusBar() {
-  tft.fillRect(0, 0, SCREEN_W, 30, C_ACCENT);
+  tft.fillRect(0, 0, SCREEN_W, 32, C_ACCENT);
   tft.setTextColor(C_WHITE, C_ACCENT);
-  tft.setTextSize(1);
-  tft.drawString("Underdog Dummy Node", 8, 8, 2);
+  tft.drawString("Underdog Dummy Node", 10, 9, 2);
 
-  // WiFi indicator dot
-  bool wifiOk = (WiFi.status() == WL_CONNECTED);
-  tft.fillCircle(SCREEN_W - 14, 15, 6, wifiOk ? C_GREEN : C_RED);
+  // WiFi dot — right side
+  bool wifi = (WiFi.status() == WL_CONNECTED);
+  uint16_t dot = wifi ? 0x07E0 : 0xF800; // bright green / red
+  tft.fillCircle(SCREEN_W - 16, 16, 7, dot);
 }
 
 void drawToggleButton() {
-  uint16_t btnColor = sendNormal ? C_GREEN : C_RED;
-  tft.fillRoundRect(BTN_X, BTN_Y, BTN_W, BTN_H, 10, btnColor);
-  tft.drawRoundRect(BTN_X, BTN_Y, BTN_W, BTN_H, 10, C_WHITE);
+  uint16_t col  = sendNormal ? C_GREEN : C_RED;
+  uint16_t bord = sendNormal ? 0x07E0  : 0xF800;
 
-  tft.setTextColor(C_WHITE, btnColor);
-  tft.setTextSize(1);
+  tft.fillRoundRect(BTN_X, BTN_Y, BTN_W, BTN_H, 12, col);
+  tft.drawRoundRect(BTN_X, BTN_Y, BTN_W, BTN_H, 12, bord);
+  tft.drawRoundRect(BTN_X + 1, BTN_Y + 1, BTN_W - 2, BTN_H - 2, 11, bord); // double border
+
+  tft.setTextColor(C_WHITE, col);
+  int cx = BTN_X + BTN_W / 2;
   if (sendNormal) {
-    tft.drawCentreString("HEALTHY DATA", BTN_X + BTN_W / 2, BTN_Y + 10, 2);
-    tft.drawCentreString("(tap to send BAD)", BTN_X + BTN_W / 2, BTN_Y + 34, 1);
+    tft.drawCentreString("HEALTHY DATA",       cx, BTN_Y + 12, 2);
+    tft.drawCentreString("tap to send BAD",    cx, BTN_Y + 38, 1);
   } else {
-    tft.drawCentreString("UNHEALTHY DATA", BTN_X + BTN_W / 2, BTN_Y + 10, 2);
-    tft.drawCentreString("(tap to send GOOD)", BTN_X + BTN_W / 2, BTN_Y + 34, 1);
+    tft.drawCentreString("UNHEALTHY DATA",     cx, BTN_Y + 12, 2);
+    tft.drawCentreString("tap to send GOOD",   cx, BTN_Y + 38, 1);
   }
 }
 
 void drawStats() {
-  // Clear stats area
-  tft.fillRect(0, 155, SCREEN_W, SCREEN_H - 155, C_BG);
+  int y0 = BTN_Y + BTN_H + 14;
+  tft.fillRect(0, y0, SCREEN_W, SCREEN_H - y0, C_BG);
 
-  tft.setTextColor(C_GREY, C_BG);
-  tft.setTextSize(1);
+  // Divider
+  tft.drawFastHLine(10, y0, SCREEN_W - 20, C_DKGREY);
+  y0 += 8;
 
-  tft.drawString("Last post:", 10, 160, 2);
-  tft.setTextColor(lastPostSuccess ? C_GREEN : C_RED, C_BG);
-  tft.drawString(lastPostSuccess ? "OK  " : "ERR ", 115, 160, 2);
+  // Last post row
+  tft.setTextColor(C_LTGREY, C_BG);
+  tft.drawString("Last post:", 10, y0, 2);
+  tft.setTextColor(lastPostOk ? 0x07E0 : 0xF800, C_BG);
+  tft.drawString(lastPostOk ? "OK " : "ERR", 120, y0, 2);
   tft.setTextColor(C_WHITE, C_BG);
-  tft.drawString(lastPostTime, 160, 160, 2);
+  tft.drawString(lastPostTime, 165, y0, 2);
 
-  tft.setTextColor(C_GREY, C_BG);
-  tft.drawString("Posts sent:", 10, 185, 2);
+  // Count row
+  tft.setTextColor(C_LTGREY, C_BG);
+  tft.drawString("Posts sent:", 10, y0 + 24, 2);
   tft.setTextColor(C_WHITE, C_BG);
-  tft.drawString(String(postCount), 115, 185, 2);
+  tft.drawString(String(postCount), 120, y0 + 24, 2);
 
-  tft.setTextColor(C_GREY, C_BG);
-  tft.drawString("IP:", 10, 210, 2);
+  // IP row
+  tft.setTextColor(C_LTGREY, C_BG);
+  tft.drawString("IP:", 10, y0 + 48, 2);
   tft.setTextColor(C_WHITE, C_BG);
-  tft.drawString(
-    WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "Not connected",
-    40, 210, 2
-  );
+  String ip = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "not connected";
+  tft.drawString(ip, 42, y0 + 48, 2);
 }
 
 void drawFullScreen() {
@@ -164,232 +194,240 @@ void drawFullScreen() {
   drawStats();
 }
 
-// ───────────────────────────────────────────
+// =============================================================
 // Backlight / sleep
-// ───────────────────────────────────────────
+// =============================================================
 
 void setBacklight(bool on) {
-  digitalWrite(TFT_BACKLIGHT_PIN, on ? HIGH : LOW);
+  digitalWrite(BL_PIN, on ? BL_ON : BL_OFF);
   displayAwake = on;
 }
 
 void wakeDisplay() {
-  if (!displayAwake) {
-    setBacklight(true);
-    drawFullScreen();
-  }
+  setBacklight(true);
+  drawFullScreen();
   lastTouchMs = millis();
 }
 
-// ───────────────────────────────────────────
+// =============================================================
 // Touch helpers
-// ───────────────────────────────────────────
+// =============================================================
 
-// Map raw touch coordinates to screen pixels (landscape orientation)
-bool getTouchPixel(int &px, int &py) {
+bool readTouch(int &px, int &py) {
   if (!ts.touched()) return false;
   TS_Point p = ts.getPoint();
 
-  // Map raw values; CYD in landscape typically needs X/Y swap
-  px = map(p.y, TOUCH_Y_MIN, TOUCH_Y_MAX, 0, SCREEN_W);
-  py = map(p.x, TOUCH_X_MIN, TOUCH_X_MAX, 0, SCREEN_H);
-
+  // Landscape: raw X → screen Y, raw Y → screen X (for rotation 1)
+  px = map(p.y, T_Y_MIN, T_Y_MAX, 0, SCREEN_W);
+  py = map(p.x, T_X_MIN, T_X_MAX, 0, SCREEN_H);
   px = constrain(px, 0, SCREEN_W - 1);
   py = constrain(py, 0, SCREEN_H - 1);
   return true;
 }
 
 bool insideButton(int px, int py) {
-  return px >= BTN_X && px <= (BTN_X + BTN_W) &&
-         py >= BTN_Y && py <= (BTN_Y + BTN_H);
+  return px >= BTN_X && px <= BTN_X + BTN_W &&
+         py >= BTN_Y && py <= BTN_Y + BTN_H;
 }
 
-// ───────────────────────────────────────────
-// NTP + timestamp
-// ───────────────────────────────────────────
+// =============================================================
+// Time helpers
+// =============================================================
 
-String getIso8601Time() {
-  time_t now = time(nullptr);
+String iso8601Now() {
+  time_t t = time(nullptr);
   struct tm ti;
-  gmtime_r(&now, &ti);
-  char buf[30];
+  gmtime_r(&t, &ti);
+  char buf[25];
   strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &ti);
   return String(buf);
 }
 
-String getShortTime() {
-  time_t now = time(nullptr);
+String shortTimeNow() {
+  time_t t = time(nullptr);
   struct tm ti;
-  localtime_r(&now, &ti);
+  localtime_r(&t, &ti);
   char buf[10];
   strftime(buf, sizeof(buf), "%H:%M:%S", &ti);
   return String(buf);
 }
 
-// ───────────────────────────────────────────
+// =============================================================
 // API posting
-// ───────────────────────────────────────────
+// =============================================================
 
 void postData() {
-  if (WiFi.status() != WL_CONNECTED) {
-    lastPostSuccess = false;
-    lastPostTime = getShortTime();
-    drawStats();
-    return;
-  }
+  Serial.println("[POST] Building payload…");
 
-  float temp, ph, waterLevel, do_val;
-
+  float temp, ph, wl, dox;
   if (sendNormal) {
-    temp       = 20.0 + (random(0, 100) / 10.0);  // 20–30
-    ph         = 6.5  + (random(0, 20)  / 10.0);  // 6.5–8.5
-    waterLevel = 70.0 + random(0, 30);             // 70–100
-    do_val     = 5.0  + (random(0, 30)  / 10.0);  // 5–8
+    temp = 20.0f + random(0, 100) / 10.0f;
+    ph   =  6.5f + random(0,  20) / 10.0f;
+    wl   = 70.0f + random(0,  30);
+    dox  =  5.0f + random(0,  30) / 10.0f;
   } else {
-    temp       = 35.0 + (random(0, 50)  / 10.0);  // 35–40
-    ph         = 4.0  + (random(0, 10)  / 10.0);  // 4–5
-    waterLevel = 40.0 + random(0, 10);             // 40–50
-    do_val     = 2.0  + (random(0, 10)  / 10.0);  // 2–3
+    temp = 35.0f + random(0,  50) / 10.0f;
+    ph   =  4.0f + random(0,  10) / 10.0f;
+    wl   = 40.0f + random(0,  10);
+    dox  =  2.0f + random(0,  10) / 10.0f;
   }
 
-  String timestamp = getIso8601Time();
+  String ts_str = iso8601Now();
+  String body   = "{";
+  body += "\"deviceId\":\""    + String(deviceId) + "\",";
+  body += "\"timestamp\":\""   + ts_str           + "\",";
+  body += "\"readings\":{";
+  body += "\"temperature\":"     + String(temp, 2) + ",";
+  body += "\"ph\":"              + String(ph,   2) + ",";
+  body += "\"waterLevel\":"      + String(wl,   2) + ",";
+  body += "\"dissolvedOxygen\":" + String(dox,  2);
+  body += "}}";
 
-  String payload = "{";
-  payload += "\"deviceId\":\"" + String(deviceId) + "\",";
-  payload += "\"timestamp\":\"" + timestamp + "\",";
-  payload += "\"readings\":{";
-  payload += "\"temperature\":"     + String(temp, 2)       + ",";
-  payload += "\"ph\":"              + String(ph, 2)          + ",";
-  payload += "\"waterLevel\":"      + String(waterLevel, 2)  + ",";
-  payload += "\"dissolvedOxygen\":" + String(do_val, 2);
-  payload += "}}";
-
-  Serial.println("POST → " + payload);
-
-  WiFiClientSecure client;
-  client.setInsecure(); // skip cert validation for simple testing
-  HTTPClient http;
+  Serial.println("[POST] " + body);
 
   bool ok = false;
-  if (http.begin(client, apiBaseUrl)) {
-    http.addHeader("Content-Type", "application/json");
-    http.addHeader("x-api-key", apiKey);
 
-    int code = http.POST(payload);
-    ok = (code == 200 || code == 201);
-    Serial.printf("HTTP %d — %s\n", code, http.getString().c_str());
-    http.end();
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[POST] Skipped — no WiFi");
+  } else {
+    WiFiClientSecure client;
+    client.setInsecure();
+    HTTPClient http;
+    if (http.begin(client, apiBaseUrl)) {
+      http.addHeader("Content-Type", "application/json");
+      http.addHeader("x-api-key", apiKey);
+      int code = http.POST(body);
+      ok = (code >= 200 && code < 300);
+      Serial.printf("[POST] HTTP %d  %s\n", code, http.getString().c_str());
+      http.end();
+    } else {
+      Serial.println("[POST] http.begin() failed");
+    }
   }
 
-  lastPostSuccess = ok;
-  lastPostTime    = getShortTime();
+  lastPostOk   = ok;
+  lastPostTime = shortTimeNow();
   postCount++;
-
   drawStats();
 }
 
-// ───────────────────────────────────────────
+// =============================================================
 // Setup
-// ───────────────────────────────────────────
+// =============================================================
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\nCYD Dummy Sensor Node starting…");
+  delay(200);
+  Serial.println("\n\n=== CYD Dummy Node booting ===");
 
-  // Backlight
-  pinMode(TFT_BACKLIGHT_PIN, OUTPUT);
+  // ── Backlight on (active-LOW on most CYD boards) ────────────────────────
+  Serial.println("[INIT] Backlight…");
+  pinMode(BL_PIN, OUTPUT);
   setBacklight(true);
+  Serial.println("[INIT] Backlight ON");
 
-  // Display
+  // ── TFT init (VSPI, configured in User_Setup.h) ─────────────────────────
+  Serial.println("[INIT] TFT…");
   tft.init();
-  tft.setRotation(1); // landscape
-  tft.fillScreen(C_BG);
+  tft.setRotation(1);   // landscape, USB port on right
+  tft.fillScreen(TFT_BLACK);
+  Serial.println("[INIT] TFT OK");
 
-  // Touch (shares the same SPI bus; XPT2046_Touchscreen handles CS itself)
-  ts.begin();
+  // Splash so you know the screen works before any network activity
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.drawCentreString("Underdog Dummy Node", SCREEN_W / 2, 90,  4);
+  tft.setTextColor(0x7BEF,   TFT_BLACK);
+  tft.drawCentreString("Starting up...",      SCREEN_W / 2, 140, 2);
+
+  // ── Touch init (HSPI — separate bus!) ───────────────────────────────────
+  Serial.println("[INIT] Touch SPI (HSPI)…");
+  touchSPI.begin(TOUCH_SCLK, TOUCH_MISO, TOUCH_MOSI, TOUCH_CS);
+  ts.begin(touchSPI);
   ts.setRotation(1);
+  Serial.println("[INIT] Touch OK");
 
-  // Splash
-  tft.setTextColor(C_WHITE, C_BG);
-  tft.drawCentreString("Connecting to WiFi…", SCREEN_W / 2, SCREEN_H / 2 - 10, 2);
+  // ── WiFi ─────────────────────────────────────────────────────────────────
+  Serial.println("[INIT] WiFi…");
+  tft.setTextColor(0x7BEF, TFT_BLACK);
+  tft.drawCentreString("Connecting to WiFi…", SCREEN_W / 2, 160, 2);
 
-  // WiFi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-  unsigned long wifiStart = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - wifiStart < 20000) {
-    delay(500);
+  unsigned long t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000) {
+    delay(400);
     Serial.print(".");
   }
   Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("WiFi connected: " + WiFi.localIP().toString());
+    Serial.println("[INIT] WiFi connected: " + WiFi.localIP().toString());
   } else {
-    Serial.println("WiFi connection failed — continuing offline");
+    Serial.println("[INIT] WiFi timeout — running offline");
   }
 
-  // NTP
+  // ── NTP ──────────────────────────────────────────────────────────────────
+  Serial.println("[INIT] NTP sync…");
   configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-  Serial.print("Waiting for NTP sync");
   time_t now = time(nullptr);
-  unsigned long ntpStart = millis();
-  while (now < 1577836800 && millis() - ntpStart < 10000) {
-    delay(500);
-    Serial.print(".");
+  t0 = millis();
+  while (now < 1577836800 && millis() - t0 < 10000) {
+    delay(400);
     now = time(nullptr);
   }
-  Serial.println();
+  Serial.printf("[INIT] NTP done  epoch=%ld\n", (long)now);
 
+  // ── First draw ───────────────────────────────────────────────────────────
   lastTouchMs = millis();
   drawFullScreen();
+  Serial.println("[INIT] First draw done");
 
-  // Post immediately on boot
+  // Post on boot
   postData();
   lastPostMs = millis();
+
+  Serial.println("=== Setup complete ===");
 }
 
-// ───────────────────────────────────────────
+// =============================================================
 // Loop
-// ───────────────────────────────────────────
+// =============================================================
 
 void loop() {
   unsigned long now = millis();
 
-  // ── Touch handling ──────────────────────
+  // ── Touch ────────────────────────────────────────────────────────────────
   int px, py;
-  if (getTouchPixel(px, py)) {
-
+  if (readTouch(px, py)) {
     if (!displayAwake) {
-      // Any touch just wakes the screen
       wakeDisplay();
-      delay(200); // debounce — ignore the wake tap
+      delay(250);  // absorb the wake tap
     } else {
       lastTouchMs = now;
-
       if (insideButton(px, py)) {
         sendNormal = !sendNormal;
-        Serial.printf("Mode toggled → %s\n", sendNormal ? "HEALTHY" : "UNHEALTHY");
+        Serial.printf("[TOUCH] Mode → %s\n", sendNormal ? "HEALTHY" : "UNHEALTHY");
         drawToggleButton();
         drawStats();
-        delay(150); // simple debounce
+        delay(200);  // debounce
       }
     }
   }
 
-  // ── Sleep timeout ───────────────────────
-  if (displayAwake && (now - lastTouchMs >= SLEEP_TIMEOUT_MS)) {
-    Serial.println("Display sleeping (touch to wake)");
+  // ── Sleep ─────────────────────────────────────────────────────────────────
+  if (displayAwake && now - lastTouchMs >= SLEEP_TIMEOUT_MS) {
+    Serial.println("[SLEEP] Backlight off");
     setBacklight(false);
   }
 
-  // ── Refresh WiFi indicator periodically ─
-  if (displayAwake && (now % 5000 < 50)) {
+  // ── Periodic WiFi dot refresh ─────────────────────────────────────────────
+  static unsigned long lastDotRefresh = 0;
+  if (displayAwake && now - lastDotRefresh >= 5000) {
+    lastDotRefresh = now;
     drawStatusBar();
   }
 
-  // ── Post data on interval ───────────────
+  // ── Post data ─────────────────────────────────────────────────────────────
   if (now - lastPostMs >= POST_INTERVAL_MS) {
     lastPostMs = now;
     postData();
