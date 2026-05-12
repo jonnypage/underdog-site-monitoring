@@ -35,7 +35,8 @@ function gqlSensorReporting(rows: Awaited<ReturnType<typeof getSiteSensorReporti
     rangeMax: r.range_max,
     thresholdMinOverride: r.threshold_min_override,
     thresholdMaxOverride: r.threshold_max_override,
-    enabled: r.enabled
+    enabled: r.enabled,
+    icon: r.icon
   }));
 }
 
@@ -74,7 +75,8 @@ export const adminQueries = {
       unit: r.unit,
       physicalMin: r.physical_min,
       physicalMax: r.physical_max,
-      sortOrder: r.sort_order
+      sortOrder: r.sort_order,
+      icon: r.icon
     }));
   },
 
@@ -490,6 +492,7 @@ export const adminMutations = {
         physicalMin?: number | null;
         physicalMax?: number | null;
         sortOrder?: number | null;
+        icon?: string | null;
       };
     },
     context: Context
@@ -503,7 +506,8 @@ export const adminMutations = {
         unit: input.unit,
         physical_min: input.physicalMin ?? null,
         physical_max: input.physicalMax ?? null,
-        sort_order: input.sortOrder ?? undefined
+        sort_order: input.sortOrder ?? undefined,
+        icon: input.icon ?? null
       });
       return {
         id: row.id,
@@ -512,7 +516,8 @@ export const adminMutations = {
         unit: row.unit,
         physicalMin: row.physical_min,
         physicalMax: row.physical_max,
-        sortOrder: row.sort_order
+        sortOrder: row.sort_order,
+        icon: row.icon
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -533,6 +538,7 @@ export const adminMutations = {
         physicalMin?: number | null;
         physicalMax?: number | null;
         sortOrder?: number | null;
+        icon?: string | null;
       };
     },
     context: Context
@@ -545,6 +551,7 @@ export const adminMutations = {
       physical_min?: number | null;
       physical_max?: number | null;
       sort_order?: number;
+      icon?: string | null;
     } = {};
     if (Object.prototype.hasOwnProperty.call(input, "displayName")) {
       if (input.displayName == null) {
@@ -569,6 +576,9 @@ export const adminMutations = {
         patch.sort_order = Math.trunc(input.sortOrder);
       }
     }
+    if (Object.prototype.hasOwnProperty.call(input, "icon")) {
+      patch.icon = input.icon ?? null;
+    }
     const row = await updateSensorCatalogEntry(context.db, input.id, patch);
     return {
       id: row.id,
@@ -577,7 +587,8 @@ export const adminMutations = {
       unit: row.unit,
       physicalMin: row.physical_min,
       physicalMax: row.physical_max,
-      sortOrder: row.sort_order
+      sortOrder: row.sort_order,
+      icon: row.icon
     };
   },
 

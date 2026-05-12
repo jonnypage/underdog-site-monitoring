@@ -25,6 +25,7 @@ type SiteSensorReporting {
   thresholdMaxOverride: Float
   enabled: Boolean!
   currentValue: Float
+  icon: String
 }
 
 type Site {
@@ -91,6 +92,7 @@ type SensorCatalogEntry {
   physicalMin: Float
   physicalMax: Float
   sortOrder: Int!
+  icon: String
 }
 
 input CreateSensorCatalogEntryInput {
@@ -100,6 +102,7 @@ input CreateSensorCatalogEntryInput {
   physicalMin: Float
   physicalMax: Float
   sortOrder: Int
+  icon: String
 }
 
 input UpdateSensorCatalogEntryInput {
@@ -109,6 +112,7 @@ input UpdateSensorCatalogEntryInput {
   physicalMin: Float
   physicalMax: Float
   sortOrder: Int
+  icon: String
 }
 
 input CreateAdminUserInput {
@@ -232,4 +236,6 @@ type Mutation {
   updateAdminDevice(input: UpdateAdminDeviceInput!): AdminDevice!
   rotateAdminDeviceApiKey(id: ID!): String!
   deleteAdminDevice(id: ID!): Boolean!
+  """Resolves (dismisses) a single alert by ID. Any authenticated user with site access may dismiss."""
+  resolveAlert(id: ID!): Alert!
 }

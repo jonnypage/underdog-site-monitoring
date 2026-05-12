@@ -17,6 +17,7 @@ query GetSites {
       thresholdMaxOverride
       enabled
       currentValue
+      icon
     }
     status
     lastUpdate
@@ -42,6 +43,7 @@ query GetSite($id: ID!) {
       thresholdMaxOverride
       enabled
       currentValue
+      icon
     }
     status
     lastUpdate

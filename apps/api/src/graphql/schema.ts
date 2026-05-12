@@ -5,7 +5,7 @@ import { GraphQLScalarType, Kind, type ValueNode } from "graphql";
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import type { Resolvers } from "./generated.js";
 import { adminMutations, adminQueries } from "./resolvers/admin.js";
-import { alertQueries } from "./resolvers/alerts.js";
+import { alertMutations, alertQueries } from "./resolvers/alerts.js";
 import { deviceMutations, deviceQueries } from "./resolvers/devices.js";
 import { measurementQueries } from "./resolvers/measurements.js";
 import { siteQueries } from "./resolvers/sites.js";
@@ -78,7 +78,8 @@ const resolvers = {
   Mutation: {
     ...userMutations,
     ...adminMutations,
-    ...deviceMutations
+    ...deviceMutations,
+    ...alertMutations
   }
 } as unknown as Resolvers;
 

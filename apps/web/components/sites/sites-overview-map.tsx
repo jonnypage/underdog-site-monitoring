@@ -165,7 +165,7 @@ export function SitesOverviewMap({ sites }: SitesOverviewMapProps) {
     <div className='space-y-2'>
       <div className='relative w-full overflow-hidden rounded-md border border-border aspect-[4/3] min-h-[400px]'>
         <GoogleMap
-          mapContainerStyle={{ width: '100%', height: '75%', minHeight: '400px' }}
+          mapContainerStyle={{ width: '100%', height: '100%', minHeight: '400px' }}
           center={DEFAULT_CENTER}
           zoom={4}
           options={mapOverviewOptions()}

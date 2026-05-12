@@ -70,11 +70,16 @@ const unsigned long SLEEP_TIMEOUT_MS  = 30000;
 // ============================================================
 
 // ── Backlight ─────────────────────────────────────────────────────────────
-// Most CYD boards wire GPIO 21 through a P-channel MOSFET: LOW = ON.
-// If your backlight is backwards, flip these two defines.
-#define BL_PIN   21
-#define BL_ON    LOW
-#define BL_OFF   HIGH
+// The CYD backlight (GPIO 21) can be active-HIGH or active-LOW depending on
+// the board revision. We drive it with LEDC PWM so we can do full brightness
+// without worrying about polarity — 255 = full on, 0 = full off.
+// If the screen stays black, open Serial Monitor: you will see "BL blink" and
+// the backlight will pulse 3 times. If it never lights up, your board may
+// need a different GPIO or the User_Setup.h still has TFT_BL defined (remove it).
+#define BL_PIN      21
+#define BL_CHANNEL   0   // LEDC channel
+#define BL_FREQ   5000   // Hz
+#define BL_BITS      8   // 8-bit resolution (0-255)
 
 // ── Touch — HSPI bus (separate from TFT's VSPI) ───────────────────────────
 #define TOUCH_SCLK  25
@@ -199,7 +204,7 @@ void drawFullScreen() {
 // =============================================================
 
 void setBacklight(bool on) {
-  digitalWrite(BL_PIN, on ? BL_ON : BL_OFF);
+  ledcWrite(BL_CHANNEL, on ? 255 : 0);
   displayAwake = on;
 }
 
@@ -320,11 +325,22 @@ void setup() {
   delay(200);
   Serial.println("\n\n=== CYD Dummy Node booting ===");
 
-  // ── Backlight on (active-LOW on most CYD boards) ────────────────────────
-  Serial.println("[INIT] Backlight…");
-  pinMode(BL_PIN, OUTPUT);
-  setBacklight(true);
-  Serial.println("[INIT] Backlight ON");
+  // ── Backlight — LEDC PWM (avoids polarity guessing) ───────────────────────
+  Serial.println("[INIT] Backlight (LEDC PWM)…");
+  ledcSetup(BL_CHANNEL, BL_FREQ, BL_BITS);
+  ledcAttachPin(BL_PIN, BL_CHANNEL);
+  // Blink 3 times so you can confirm the backlight circuit is responding
+  for (int i = 0; i < 3; i++) {
+    Serial.printf("[INIT] BL blink %d ON\n", i + 1);
+    ledcWrite(BL_CHANNEL, 255);
+    delay(300);
+    Serial.printf("[INIT] BL blink %d OFF\n", i + 1);
+    ledcWrite(BL_CHANNEL, 0);
+    delay(200);
+  }
+  ledcWrite(BL_CHANNEL, 255); // leave on
+  displayAwake = true;
+  Serial.println("[INIT] Backlight ON (PWM 255/255)");
 
   // ── TFT init (VSPI, configured in User_Setup.h) ─────────────────────────
   Serial.println("[INIT] TFT…");

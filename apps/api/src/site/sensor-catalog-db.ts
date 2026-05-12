@@ -26,12 +26,13 @@ export type SensorCatalogRow = {
   physical_min: number | null;
   physical_max: number | null;
   sort_order: number;
+  icon: string | null;
 };
 
 export async function listSensorCatalog(db: AppDb): Promise<SensorCatalogRow[]> {
   return db
     .selectFrom("sensor_catalog")
-    .select(["id", "key", "display_name", "unit", "physical_min", "physical_max", "sort_order"])
+    .select(["id", "key", "display_name", "unit", "physical_min", "physical_max", "sort_order", "icon"])
     .orderBy("sort_order", "asc")
     .orderBy("key", "asc")
     .execute();
@@ -48,6 +49,7 @@ export type SiteSensorReportingRow = {
   threshold_min_override: number | null;
   threshold_max_override: number | null;
   enabled: boolean;
+  icon: string | null;
 };
 
 async function loadSiteThresholdMaps(
@@ -82,6 +84,7 @@ function mergeReportingRow(
     physical_min: number | null;
     physical_max: number | null;
     enabled: boolean;
+    icon: string | null;
   },
   thMaps: Map<string, Map<string, { min_value: number | null; max_value: number | null }>>
 ): SiteSensorReportingRow {
@@ -100,7 +103,8 @@ function mergeReportingRow(
     range_max,
     threshold_min_override,
     threshold_max_override,
-    enabled: row.enabled
+    enabled: row.enabled,
+    icon: row.icon
   };
 }
 
@@ -114,7 +118,8 @@ export async function getSiteSensorReportingForGraphql(db: AppDb, siteId: string
       "sensor_catalog.unit",
       "sensor_catalog.physical_min",
       "sensor_catalog.physical_max",
-      "site_sensor_catalog.enabled"
+      "site_sensor_catalog.enabled",
+      "sensor_catalog.icon"
     ])
     .where("site_sensor_catalog.site_id", "=", siteId)
     .orderBy("sensor_catalog.sort_order", "asc")
@@ -203,7 +208,8 @@ export async function getSitesSensorReportingBatch(
       "sensor_catalog.unit",
       "sensor_catalog.physical_min",
       "sensor_catalog.physical_max",
-      "site_sensor_catalog.enabled"
+      "site_sensor_catalog.enabled",
+      "sensor_catalog.icon"
     ])
     .where("site_sensor_catalog.site_id", "in", siteIds)
     .orderBy("sensor_catalog.sort_order", "asc")
@@ -227,7 +233,8 @@ export async function getSitesSensorReportingBatch(
             unit: r.unit,
             physical_min: r.physical_min,
             physical_max: r.physical_max,
-            enabled: r.enabled
+            enabled: r.enabled,
+            icon: r.icon
           },
           thMaps
         )
@@ -250,6 +257,7 @@ export async function createSensorCatalogEntry(
     physical_min: number | null;
     physical_max: number | null;
     sort_order: number | null | undefined;
+    icon?: string | null;
   }
 ) {
   const key = assertValidSensorCatalogKey(params.key);
@@ -289,6 +297,7 @@ export async function createSensorCatalogEntry(
       physical_min: params.physical_min,
       physical_max: params.physical_max,
       sort_order,
+      icon: params.icon?.trim() || null,
       created_at: now,
       updated_at: now
     })
@@ -323,6 +332,7 @@ export async function updateSensorCatalogEntry(
     physical_min?: number | null;
     physical_max?: number | null;
     sort_order?: number;
+    icon?: string | null;
   }
 ) {
   const existing = await db.selectFrom("sensor_catalog").selectAll().where("id", "=", id).executeTakeFirst();
@@ -357,6 +367,9 @@ export async function updateSensorCatalogEntry(
   }
   if (patch.sort_order !== undefined && Number.isFinite(patch.sort_order)) {
     row.sort_order = Math.trunc(patch.sort_order);
+  }
+  if (patch.icon !== undefined) {
+    row.icon = patch.icon?.trim() || null;
   }
 
   if (Object.keys(row).length <= 1) {

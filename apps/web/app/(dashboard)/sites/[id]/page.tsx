@@ -23,7 +23,7 @@ export default function SiteDetailPage() {
   const range = GqlTimeRange.Last_7D;
   const siteQuery = useQuery(GetSiteDocument, { variables: { id: siteId } });
   const measurementsQuery = useQuery(GetMeasurementsDocument, { variables: { siteId, range } });
-  const alertsQuery = useQuery(GetAlertsDocument, { variables: { siteId } });
+  const alertsQuery = useQuery(GetAlertsDocument, { variables: { siteId, status: "active" } });
 
   const site = siteQuery.data?.getSite;
   const siteStillLoading = siteQuery.loading && !site;
@@ -51,6 +51,13 @@ export default function SiteDetailPage() {
 
   const alerts = alertsQuery.data?.getAlerts ?? [];
 
+  // Build key → icon name map so AlertList can show sensor icons on each alert row
+  const sensorIconMap = useMemo(() => {
+    return Object.fromEntries(
+      (site?.sensorReporting ?? []).map((r) => [r.key, r.icon])
+    ) as Record<string, string | null | undefined>;
+  }, [site?.sensorReporting]);
+
   if (siteStillLoading) {
     return <SiteDetailSkeleton label="Loading site…" />;
   }
@@ -71,24 +78,17 @@ export default function SiteDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
+      <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>Active Alerts</CardTitle>
+            <Button type="button" variant="ghost" size="sm" asChild>
+              <Link href={`/sites/${siteId}/alerts`}>Show all alerts →</Link>
+            </Button>
           </CardHeader>
           <CardContent>
-            <AlertList alerts={alerts.filter((alert) => alert.status === "active")} />
+            <AlertList alerts={alerts} refetch={alertsQuery.refetch} sensorIconMap={sensorIconMap} />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Alerts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AlertList alerts={alerts.slice(0, 10)} />
-          </CardContent>
-        </Card>
-      </div>
 
       {activeReporting.length === 0 ? (
         <p className="text-sm text-muted-foreground">No sensors are enabled for this site. An administrator can enable them under Admin → Sites.</p>

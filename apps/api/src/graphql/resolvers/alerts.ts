@@ -52,3 +52,44 @@ export const alertQueries = {
       }));
   }
 };
+
+export const alertMutations = {
+  resolveAlert: async (
+    _parent: unknown,
+    args: { id: string },
+    context: Context
+  ) => {
+    requireUser(context.user);
+
+    // Load the alert first to enforce site access
+    const alert = await context.db
+      .selectFrom("alerts")
+      .selectAll()
+      .where("id", "=", args.id)
+      .executeTakeFirst();
+
+    if (!alert) {
+      throw new Error("Alert not found");
+    }
+
+    await requireSiteAccess(context.db, context.user, alert.site_id);
+
+    const updated = await context.db
+      .updateTable("alerts")
+      .set({ status: "resolved", resolved_at: new Date() })
+      .where("id", "=", args.id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return {
+      id: updated.id,
+      siteId: updated.site_id,
+      type: updated.type,
+      severity: updated.severity,
+      status: updated.status,
+      message: updated.message,
+      createdAt: updated.created_at,
+      resolvedAt: updated.resolved_at
+    };
+  }
+};

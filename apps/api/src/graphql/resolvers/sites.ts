@@ -70,7 +70,8 @@ function gqlSensorReporting(rows: SiteSensorReportingRow[], latestMap: Record<st
     thresholdMinOverride: r.threshold_min_override,
     thresholdMaxOverride: r.threshold_max_override,
     enabled: r.enabled,
-    currentValue: latestMap[r.key] ?? null
+    currentValue: latestMap[r.key] ?? null,
+    icon: r.icon
   }));
 }
 

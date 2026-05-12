@@ -29,12 +29,12 @@ export const measurementQueries = {
       .select((eb) => [
         "sensor",
         eb.fn.avg<number>("value").as("value"),
-        sql<Date>`to_timestamp(floor(extract(epoch from taken_at) / 43200) * 43200)`.as("taken_at")
+        sql<Date>`to_timestamp(floor(extract(epoch from taken_at) / 21600) * 21600)`.as("taken_at")
       ])
       .where("site_id", "=", args.siteId)
       .where("sensor", "in", enabledSensors)
       .where("taken_at", ">=", since)
-      .groupBy(["sensor", sql`to_timestamp(floor(extract(epoch from taken_at) / 43200) * 43200)`])
+      .groupBy(["sensor", sql`to_timestamp(floor(extract(epoch from taken_at) / 21600) * 21600)`])
       .orderBy("taken_at", "asc")
       .execute();
 

@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoricalLineChart } from "@/components/charts/historical-line-chart";
+import { SensorIcon } from "@/components/sensor-icon";
 import { GetSiteDocument, GetSensorMeasurementsDocument, TimeRange as GqlTimeRange } from "@/lib/gql/generated/graphql";
 
 export default function SensorHistoricalPage() {
@@ -76,9 +77,16 @@ export default function SensorHistoricalPage() {
             <span className="sr-only">Back</span>
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{sensorInfo.displayName} History</h1>
-          <p className="text-sm text-muted-foreground">{site?.name ?? "Site"}</p>
+        <div className="flex items-center gap-3">
+          {sensorInfo.icon && (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <SensorIcon name={sensorInfo.icon} className="h-5 w-5" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">{sensorInfo.displayName} History</h1>
+            <p className="text-sm text-muted-foreground">{site?.name ?? "Site"}</p>
+          </div>
         </div>
       </div>
 

@@ -10,3 +10,11 @@ query GetAlerts($siteId: ID, $type: String, $status: String) {
     resolvedAt
   }
 }
+
+mutation ResolveAlert($id: ID!) {
+  resolveAlert(id: $id) {
+    id
+    status
+    resolvedAt
+  }
+}

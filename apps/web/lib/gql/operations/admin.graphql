@@ -18,6 +18,7 @@ query AdminSites {
     physicalMin
     physicalMax
     sortOrder
+    icon
   }
   adminSites {
     id
@@ -36,6 +37,7 @@ query AdminSites {
       thresholdMinOverride
       thresholdMaxOverride
       enabled
+      icon
     }
     createdAt
     updatedAt
@@ -85,6 +87,7 @@ mutation CreateAdminSite($input: CreateAdminSiteInput!) {
       thresholdMinOverride
       thresholdMaxOverride
       enabled
+      icon
     }
   }
 }
@@ -107,6 +110,7 @@ mutation UpdateAdminSite($input: UpdateAdminSiteInput!) {
       thresholdMinOverride
       thresholdMaxOverride
       enabled
+      icon
     }
   }
 }

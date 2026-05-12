@@ -56,6 +56,7 @@ export interface SensorCatalogTable {
   physical_min: number | null;
   physical_max: number | null;
   sort_order: number;
+  icon: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 }
