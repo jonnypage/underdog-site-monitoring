@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { GetAlertsDocument } from "@/lib/gql/generated/graphql";
+import { LoadingMessage } from "@/components/ui/spinner";
 
 export default function AlertsPage() {
   const [siteId, setSiteId] = useState("");
@@ -45,7 +46,7 @@ export default function AlertsPage() {
           <CardTitle>Alerts</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? <p className="text-sm text-muted-foreground">Loading alerts...</p> : null}
+          {loading ? <LoadingMessage>Loading alerts...</LoadingMessage> : null}
           {error ? <p className="text-sm text-red-600">{error.message}</p> : null}
           <AlertList alerts={data?.getAlerts ?? []} />
         </CardContent>

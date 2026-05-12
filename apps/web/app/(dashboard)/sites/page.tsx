@@ -7,6 +7,7 @@ import { SitesOverviewMap } from "@/components/sites/sites-overview-map";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteStatusBadge } from "@/components/site-status-badge";
 import { GetSitesDocument } from "@/lib/gql/generated/graphql";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function SitesPage() {
   const router = useRouter();
@@ -27,8 +28,8 @@ export default function SitesPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12 gap-3">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="flex items-center justify-center gap-3 py-12">
+              <Spinner size="md" />
               <p className="text-sm text-muted-foreground">Loading sites...</p>
             </div>
           ) : (
@@ -70,10 +71,7 @@ export default function SitesPage() {
                       <div className="col-span-1 md:col-span-6">
                         <div className="inline-flex max-w-full items-center gap-2 text-left font-medium text-primary">
                           {pendingSiteId === site.id && isPending ? (
-                            <span
-                              className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent"
-                              aria-hidden
-                            />
+                            <Spinner size="xs" />
                           ) : null}
                           <span className="min-w-0 text-base md:text-sm truncate">{site.name}</span>
                         </div>
@@ -103,8 +101,11 @@ export default function SitesPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-border bg-muted/20">
-              <p className="text-sm text-muted-foreground italic">Loading map coordinates...</p>
+            <div className="flex h-[400px] items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20">
+              <Spinner size="md" />
+              <p className="text-sm text-muted-foreground italic">
+                Loading map coordinates...
+              </p>
             </div>
           ) : (
             <SitesOverviewMap sites={sites} />

@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
+import { roleDisplayName } from "@/lib/role-display-name";
 import {
   AdminSitesDocument,
   AdminUsersDocument,
@@ -74,7 +76,9 @@ export function AdminUserForm({ mode, userId }: { mode: Mode; userId?: string })
               role: uRole,
               assignedSiteIds: uSiteIds.length ? uSiteIds : undefined
             }
-          }
+          },
+          refetchQueries: [AdminUsersDocument],
+          awaitRefetchQueries: true,
         });
       } else if (mode === "edit" && userId) {
         await updateUser({
@@ -86,7 +90,9 @@ export function AdminUserForm({ mode, userId }: { mode: Mode; userId?: string })
               role: uRole,
               assignedSiteIds: uSiteIds
             }
-          }
+          },
+          refetchQueries: [AdminUsersDocument],
+          awaitRefetchQueries: true,
         });
       }
       router.push("/admin");
@@ -121,7 +127,7 @@ export function AdminUserForm({ mode, userId }: { mode: Mode; userId?: string })
 
   if (mode === "edit") {
     if (usersLoading || !usersData) {
-      return <p className="text-sm text-muted-foreground">Loading user…</p>;
+      return <LoadingMessage>Loading user…</LoadingMessage>;
     }
     if (!existing) {
       return (
@@ -134,7 +140,7 @@ export function AdminUserForm({ mode, userId }: { mode: Mode; userId?: string })
       );
     }
     if (!hydrated) {
-      return <p className="text-sm text-muted-foreground">Loading user…</p>;
+      return <LoadingMessage>Loading user…</LoadingMessage>;
     }
   }
 
@@ -184,7 +190,7 @@ export function AdminUserForm({ mode, userId }: { mode: Mode; userId?: string })
             <Select id="admin-u-role" className="w-full" value={uRole} onChange={(e) => setURole(e.target.value)}>
               {ROLES.map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {roleDisplayName(r)}
                 </option>
               ))}
             </Select>
@@ -212,8 +218,24 @@ export function AdminUserForm({ mode, userId }: { mode: Mode; userId?: string })
           </div>
           {userErr ? <p className="text-sm text-red-600">{userErr}</p> : null}
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={creatingUser || updatingUser}>
-              {mode === "create" ? (creatingUser ? "Creating…" : "Create user") : updatingUser ? "Saving…" : "Save user"}
+            <Button type="submit" disabled={creatingUser || updatingUser} className="gap-2">
+              {mode === "create" ? (
+                creatingUser ? (
+                  <>
+                    <Spinner className="text-primary-foreground" size="md" />
+                    Creating…
+                  </>
+                ) : (
+                  "Create user"
+                )
+              ) : updatingUser ? (
+                <>
+                  <Spinner className="text-primary-foreground" size="md" />
+                  Saving…
+                </>
+              ) : (
+                "Save user"
+              )}
             </Button>
             <Button type="button" variant="outline" asChild>
               <Link href="/admin">Cancel</Link>
@@ -253,8 +275,15 @@ export function AdminUserForm({ mode, userId }: { mode: Mode; userId?: string })
               />
             </div>
             {resetMsg ? <p className="text-sm text-emerald-700 dark:text-emerald-400">{resetMsg}</p> : null}
-            <Button type="submit" variant="outline" disabled={resettingPassword}>
-              {resettingPassword ? "Resetting…" : "Reset password"}
+            <Button type="submit" variant="outline" disabled={resettingPassword} className="gap-2">
+              {resettingPassword ? (
+                <>
+                  <Spinner size="md" />
+                  Resetting…
+                </>
+              ) : (
+                "Reset password"
+              )}
             </Button>
           </form>
         ) : null}

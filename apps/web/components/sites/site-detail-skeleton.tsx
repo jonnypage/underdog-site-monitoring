@@ -1,12 +1,13 @@
 "use client";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 
 export function SiteDetailSkeleton({ label = "Loading site…" }: { label?: string }) {
   return (
     <div className="space-y-6" aria-busy="true" aria-live="polite">
       <div className="flex flex-wrap items-center justify-center gap-2 py-2 text-sm text-muted-foreground md:justify-start">
-        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        <Spinner className="text-muted-foreground" />
         <span>{label}</span>
       </div>
       <div className="flex flex-wrap items-start justify-between gap-4">

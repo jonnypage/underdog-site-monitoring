@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { GetAlertsDocument, GetSiteDocument } from "@/lib/gql/generated/graphql";
+import { LoadingMessage } from "@/components/ui/spinner";
 import { ChevronLeft } from "lucide-react";
 
 export default function SiteAlertsPage() {
@@ -83,7 +84,7 @@ export default function SiteAlertsPage() {
         </CardHeader>
         <CardContent>
           {alertsQuery.loading ? (
-            <p className="text-sm text-muted-foreground">Loading alerts…</p>
+            <LoadingMessage>Loading alerts…</LoadingMessage>
           ) : alertsQuery.error ? (
             <p className="text-sm text-red-600">{alertsQuery.error.message}</p>
           ) : (

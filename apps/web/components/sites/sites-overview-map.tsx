@@ -15,6 +15,7 @@ import {
   GOOGLE_MAPS_LOADER_ID,
   getGoogleMapsBrowserKey,
 } from '@/lib/google-maps-loader';
+import { Spinner } from '@/components/ui/spinner';
 
 const DEFAULT_CENTER: google.maps.LatLngLiteral = {
   lat: 39.8283,
@@ -152,11 +153,12 @@ export function SitesOverviewMap({ sites }: SitesOverviewMapProps) {
   if (!isLoaded) {
     return (
       <div
-        className='flex w-full items-center justify-center rounded-md border border-border bg-muted/30 text-sm text-muted-foreground aspect-[4/3] min-h-[200px]'
+        className='flex w-full items-center justify-center gap-2 rounded-md border border-border bg-muted/30 text-sm text-muted-foreground aspect-[4/3] min-h-[200px]'
         role='status'
         aria-live='polite'
       >
-        Loading map…
+        <Spinner size='md' />
+        <span>Loading map…</span>
       </div>
     );
   }

@@ -7,6 +7,7 @@ import * as LucideIcons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
 import {
   AdminSensorCatalogListDocument,
@@ -386,8 +387,24 @@ export function AdminSensorsManager() {
             {formErr ? <p className="text-sm text-red-600">{formErr}</p> : null}
 
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={busy}>
-                {editingId ? (updating ? "Saving…" : "Save changes") : creating ? "Adding…" : "Add sensor"}
+              <Button type="submit" disabled={busy} className="gap-2">
+                {editingId ? (
+                  updating ? (
+                    <>
+                      <Spinner className="text-primary-foreground" size="md" />
+                      Saving…
+                    </>
+                  ) : (
+                    "Save changes"
+                  )
+                ) : creating ? (
+                  <>
+                    <Spinner className="text-primary-foreground" size="md" />
+                    Adding…
+                  </>
+                ) : (
+                  "Add sensor"
+                )}
               </Button>
               {editingId ? (
                 <Button type="button" variant="outline" onClick={resetForm} disabled={busy}>
@@ -410,7 +427,7 @@ export function AdminSensorsManager() {
         </CardHeader>
         <CardContent>
           {error ? <p className="text-sm text-red-600">{error.message}</p> : null}
-          {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+          {loading ? <LoadingMessage>Loading…</LoadingMessage> : null}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

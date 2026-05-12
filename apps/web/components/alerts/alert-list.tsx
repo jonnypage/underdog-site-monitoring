@@ -125,36 +125,38 @@ function AlertAccordionRow({
       "border-b border-border last:border-0 transition-colors",
       open && "bg-muted/30"
     )}>
-      <button
-        type="button"
-        className="flex w-full items-center gap-3 px-4 py-3 text-left"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
-            open && "rotate-180"
-          )}
-        />
-        {(() => {
-          const iconName = iconForAlert(alert.type, sensorIconMap);
-          return iconName ? (
-            <span className="shrink-0 text-muted-foreground">
-              <SensorIcon name={iconName} className="h-4 w-4" />
-            </span>
-          ) : null;
-        })()}
-        <span className="flex-1 text-sm font-semibold leading-snug">
-          {getAlertLabel(alert.type)}
-        </span>
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          <StatusPill value={alert.severity} />
-          <StatusPill value={alert.status} />
-        </div>
-        <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
-          {new Date(alert.createdAt).toLocaleString()}
-        </span>
+      <div className="flex w-full items-center gap-1">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+        >
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+              open && "rotate-180"
+            )}
+          />
+          {(() => {
+            const iconName = iconForAlert(alert.type, sensorIconMap);
+            return iconName ? (
+              <span className="shrink-0 text-muted-foreground">
+                <SensorIcon name={iconName} className="h-4 w-4" />
+              </span>
+            ) : null;
+          })()}
+          <span className="flex-1 text-sm font-semibold leading-snug">
+            {getAlertLabel(alert.type)}
+          </span>
+          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+            <StatusPill value={alert.severity} />
+            <StatusPill value={alert.status} />
+          </div>
+          <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+            {new Date(alert.createdAt).toLocaleString()}
+          </span>
+        </button>
         {canDismiss && (
           <button
             type="button"
@@ -162,7 +164,7 @@ function AlertAccordionRow({
             disabled={dismissing}
             onClick={handleDismiss}
             className={cn(
-              "ml-1 shrink-0 rounded-full p-1 text-muted-foreground transition-colors",
+              "mr-3 shrink-0 rounded-full p-1 text-muted-foreground transition-colors",
               "hover:bg-destructive/10 hover:text-destructive",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
@@ -170,7 +172,7 @@ function AlertAccordionRow({
             <X className="h-3.5 w-3.5" />
           </button>
         )}
-      </button>
+      </div>
 
       {!open && (
         <p className="px-4 pb-2 text-xs text-muted-foreground sm:hidden">

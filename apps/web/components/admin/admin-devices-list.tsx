@@ -6,6 +6,7 @@ import { useMutation, useQuery } from "@apollo/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
+import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { AlertCircle } from "lucide-react";
 import {
   AdminDevicesDocument,
@@ -86,7 +87,7 @@ export function AdminDevicesList({ overview = false }: { overview?: boolean }) {
       <CardContent className="space-y-6">
         {error ? <p className="text-sm text-red-600">{error.message}</p> : null}
         {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
-        {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+        {loading ? <LoadingMessage>Loading…</LoadingMessage> : null}
 
         {rotatedKey ? (
           <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
@@ -251,8 +252,15 @@ export function AdminDevicesList({ overview = false }: { overview?: boolean }) {
               <Button type="button" variant="outline" onClick={() => setDeviceToDelete(null)} disabled={deleting}>
                 Cancel
               </Button>
-              <Button type="button" variant="default" className="bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:opacity-90" onClick={() => onDelete(deviceToDelete.id)} disabled={deleting}>
-                {deleting ? "Deleting..." : "Delete"}
+              <Button type="button" variant="default" className="gap-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:opacity-90" onClick={() => onDelete(deviceToDelete.id)} disabled={deleting}>
+                {deleting ? (
+                  <>
+                    <Spinner className="text-destructive-foreground" size="md" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </Button>
             </div>
           </div>
@@ -271,8 +279,15 @@ export function AdminDevicesList({ overview = false }: { overview?: boolean }) {
               <Button type="button" variant="outline" onClick={() => setDeviceToRotate(null)} disabled={rotating}>
                 Cancel
               </Button>
-              <Button type="button" variant="default" onClick={() => onRotate(deviceToRotate.id)} disabled={rotating}>
-                {rotating ? "Rotating..." : "Rotate Key"}
+              <Button type="button" variant="default" onClick={() => onRotate(deviceToRotate.id)} disabled={rotating} className="gap-2">
+                {rotating ? (
+                  <>
+                    <Spinner className="text-primary-foreground" size="md" />
+                    Rotating...
+                  </>
+                ) : (
+                  "Rotate Key"
+                )}
               </Button>
             </div>
           </div>

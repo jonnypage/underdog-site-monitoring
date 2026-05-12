@@ -15,6 +15,7 @@ import {
   AdminSitesDocument,
   CreateAdminDeviceDocument
 } from "@/lib/gql/generated/graphql";
+import { Spinner } from "@/components/ui/spinner";
 
 function suggestDeviceId(siteName: string | undefined, hint: string) {
   const base = (siteName ?? "node").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -175,8 +176,15 @@ export function AdminDeviceCreate() {
           </div>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex gap-2">
-            <Button type="submit" disabled={creating || !deviceId.trim()}>
-              {creating ? "Creating…" : "Create device"}
+            <Button type="submit" disabled={creating || !deviceId.trim()} className="gap-2">
+              {creating ? (
+                <>
+                  <Spinner className="text-primary-foreground" size="md" />
+                  Creating…
+                </>
+              ) : (
+                "Create device"
+              )}
             </Button>
             <Button type="button" variant="outline" asChild>
               <Link href="/admin/devices">Cancel</Link>

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoricalLineChart } from "@/components/charts/historical-line-chart";
 import { SensorIcon } from "@/components/sensor-icon";
 import { GetSiteDocument, GetSensorMeasurementsDocument, TimeRange as GqlTimeRange } from "@/lib/gql/generated/graphql";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function SensorHistoricalPage() {
   const params = useParams<{ id: string; sensorKey: string }>();
@@ -49,8 +50,9 @@ export default function SensorHistoricalPage() {
 
   if (siteQuery.loading && !site) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <div className="flex h-64 items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Spinner size="md" />
+        <span>Loading site…</span>
       </div>
     );
   }
@@ -149,8 +151,9 @@ export default function SensorHistoricalPage() {
         </CardHeader>
         <CardContent>
           {measurementsQuery.loading && chartData.length === 0 ? (
-            <div className="flex h-[400px] items-center justify-center">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <div className="flex h-[400px] items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Spinner size="md" />
+              <span>Loading measurements…</span>
             </div>
           ) : (
             <HistoricalLineChart 

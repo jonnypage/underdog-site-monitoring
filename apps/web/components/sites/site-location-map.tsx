@@ -3,6 +3,7 @@
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GOOGLE_MAPS_LOADER_ID, getGoogleMapsBrowserKey } from "@/lib/google-maps-loader";
+import { Spinner } from "@/components/ui/spinner";
 
 type SiteLocationMapProps = {
   latitude: number;
@@ -40,8 +41,12 @@ export function SiteLocationMap({ latitude, longitude, title = "Location" }: Sit
         ) : loadError ? (
           <p className="text-sm text-red-600">Error loading Google Maps.</p>
         ) : !isLoaded ? (
-          <div className="h-[20.8rem] w-full rounded-md bg-muted animate-pulse flex items-center justify-center text-sm text-muted-foreground">
-            Loading map...
+          <div
+            role="status"
+            className="flex h-[20.8rem] w-full flex-row items-center justify-center gap-2 rounded-md bg-muted text-sm text-muted-foreground"
+          >
+            <Spinner size="md" />
+            <span>Loading map...</span>
           </div>
         ) : (
           <div className="h-[30.8rem] w-full overflow-hidden rounded-md border border-border">

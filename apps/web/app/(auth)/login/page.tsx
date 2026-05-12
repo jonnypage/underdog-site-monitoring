@@ -7,6 +7,7 @@ import { OrgLogo } from "@/components/org-logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -77,7 +78,10 @@ export default function LoginPage() {
               <div className="flex justify-center">
                 <OrgLogo variant="sidebar" />
               </div>
-              <p className="text-center text-sm text-muted-foreground">Loading…</p>
+              <p className="flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+                <Spinner size="md" />
+                Loading…
+              </p>
             </CardHeader>
           </Card>
         </main>

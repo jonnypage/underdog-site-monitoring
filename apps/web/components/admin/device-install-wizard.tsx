@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { apolloErrorMessage } from "@/lib/apollo-error-message";
 import {
   AdminDeviceDocument,
@@ -296,7 +297,7 @@ export function DeviceInstallWizard({
   }
 
   if (loading || siteLoading || !hydrated) {
-    return <p className="text-sm text-muted-foreground">Loading device…</p>;
+    return <LoadingMessage>Loading device…</LoadingMessage>;
   }
   if (deviceErr) {
     return <p className="text-sm text-red-600">{deviceErr.message}</p>;
@@ -383,8 +384,15 @@ export function DeviceInstallWizard({
                       placeholder="ud_…"
                       className="font-mono"
                     />
-                    <Button type="button" variant="outline" disabled={rotating} onClick={onGenerateNewKey}>
-                      {rotating ? "Rotating…" : "Generate new API key"}
+                    <Button type="button" variant="outline" disabled={rotating} onClick={onGenerateNewKey} className="gap-2">
+                      {rotating ? (
+                        <>
+                          <Spinner size="md" />
+                          Rotating…
+                        </>
+                      ) : (
+                        "Generate new API key"
+                      )}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
@@ -455,8 +463,17 @@ export function DeviceInstallWizard({
               {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
               <div className="flex flex-wrap items-center gap-3">
-                <Button type="submit" disabled={building}>
-                  {building ? "Preparing firmware…" : manifestUrl ? "Rebuild firmware" : "Prepare firmware"}
+                <Button type="submit" disabled={building} className="gap-2">
+                  {building ? (
+                    <>
+                      <Spinner className="text-primary-foreground" size="md" />
+                      Preparing firmware…
+                    </>
+                  ) : manifestUrl ? (
+                    "Rebuild firmware"
+                  ) : (
+                    "Prepare firmware"
+                  )}
                 </Button>
                 <Button type="button" variant="outline" asChild>
                   <Link href="/admin/devices">Cancel</Link>

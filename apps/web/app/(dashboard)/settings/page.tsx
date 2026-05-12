@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { LoadingMessage, Spinner } from "@/components/ui/spinner";
 import { GetMeDocument, UpdateMeDocument } from "@/lib/gql/generated/graphql";
+import { roleDisplayName } from "@/lib/role-display-name";
 
 function apolloErrorMessage(err: unknown): string {
   if (err && typeof err === "object" && "graphQLErrors" in err) {
@@ -47,11 +49,20 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Account</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Role: {error ? "—" : me?.role ?? (loading ? "…" : "—")}
+            Role:{" "}
+            {error
+              ? "—"
+              : loading
+                ? (
+                    <span className="inline-flex items-center gap-1.5 align-middle" aria-label="Loading role">
+                      <Spinner size="xs" />
+                    </span>
+                  )
+                : roleDisplayName(me?.role)}
           </p>
         </CardHeader>
         <CardContent>
-          {loading ? <p className="text-sm text-muted-foreground">Loading profile...</p> : null}
+          {loading ? <LoadingMessage>Loading profile...</LoadingMessage> : null}
           {error ? (
             <div className="mb-4 space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
               <p className="font-medium text-destructive">{apolloErrorMessage(error)}</p>
@@ -155,8 +166,15 @@ export default function SettingsPage() {
               />
             </div>
             {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
-            <Button type="submit" disabled={saving || loading || !me}>
-              {saving ? "Saving…" : "Save changes"}
+            <Button type="submit" disabled={saving || loading || !me} className="gap-2">
+              {saving ? (
+                <>
+                  <Spinner className="text-primary-foreground" size="md" />
+                  Saving…
+                </>
+              ) : (
+                "Save changes"
+              )}
             </Button>
             <p className="text-xs text-muted-foreground">
               After saving, you will be signed out and asked to sign in again so your session matches your updated account.
